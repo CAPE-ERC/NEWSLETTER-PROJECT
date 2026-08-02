@@ -1,0 +1,67 @@
+{
+  "edition": { "month": "July", "year": 2026 },
+  "global": {
+    "global_growth_outlook_pct": null,
+    "global_inflation_pct": null,
+    "monetary_policy_notes": "Fed held 3.50-3.75% at June meeting; ECB hiked +25bps in June; BoJ continued gradual normalization (hikes); BoE stayed cautious. Growing policy divergence across AEs.",
+    "market_notes": "June 2026: S&P 500 closed ~7,499 (-1% MoM, best quarter since 2020); Nasdaq closed 26,214 after tech correction; Dow closed record >52,300 on rotation into industrials/healthcare/financials.",
+    "commodity_notes": "Mid-June US-Iran ceasefire reopened Strait of Hormuz; Brent fell to ~US$73/bbl and WTI to ~US$71/bbl by month-end; gold mixed but elevated on central-bank buying.",
+    "source": "IMF/World Bank/market commentary (narrative, no single indexed figure in text)"
+  },
+  "nigeria_output": {
+    "pmi": 53.4,
+    "pmi_prior": 54.1,
+    "pmi_period": "June 2026",
+    "pmi_source_detail": "Stanbic IBTC PMI, 5th consecutive month above the 50.0 threshold; business confidence at 1-year high",
+    "pmi_months_above_50": 5,
+    "gdp_growth_yoy_pct": null,
+    "gdp_growth_yoy_prior_pct": null,
+    "gdp_period": null,
+    "gdp_annual_pct": null,
+    "gdp_annual_prior_pct": null,
+    "source": "Stanbic IBTC PMI (GDP not restated in narrative this edition, only referenced via Figure 3: Q3 2024-Q1 2026)"
+  },
+  "prices": {
+    "headline_inflation_yoy_pct": 15.93,
+    "headline_inflation_yoy_prior_pct": 15.69,
+    "headline_inflation_yoy_prior_year_pct": 26.06,
+    "headline_inflation_mom_pct": 1.75,
+    "headline_inflation_mom_prior_pct": 2.13,
+    "cpi_index": 140.7,
+    "cpi_index_prior": 138.3,
+    "food_inflation_yoy_pct": 16.96,
+    "food_inflation_yoy_prior_year_pct": 24.55,
+    "food_inflation_mom_pct": 2.98,
+    "food_inflation_mom_prior_pct": 3.63,
+    "food_inflation_12m_avg_pct": 16.99,
+    "food_inflation_12m_avg_prior_year_pct": 33.21,
+    "core_inflation_yoy_pct": 16.82,
+    "core_inflation_yoy_prior_year_pct": 24.92,
+    "core_inflation_mom_pct": 1.94,
+    "core_inflation_mom_prior_pct": 1.03,
+    "core_inflation_12m_avg_pct": 19.59,
+    "core_inflation_12m_avg_prior_year_pct": 27.05,
+    "period": "May 2026",
+    "source": "NBS"
+  },
+  "fiscal": {
+    "faac_total_allocation_ngn_bn": 2300.0,
+    "faac_total_allocation_prior_ngn_bn": 2257.0,
+    "faac_period": "May 2026 revenue (per this edition's own labeling)",
+    "federal_share_ngn_bn": 818.680,
+    "state_share_ngn_bn": 759.141,
+    "lg_share_ngn_bn": 534.277,
+    "derivation_13pct_ngn_bn": 188.132,
+    "notes": "Higher PPT, CIT and oil/gas royalty collections offset weaker VAT, import and excise duties.",
+    "source": "FAAC"
+  },
+  "country_in_focus": {
+    "country": "Republic of Congo DRC",
+    "epu_index_value": 137,
+    "epu_index_prior": 132,
+    "epu_period": "May 2026 (prior: April 2026)",
+    "notes": "Only edition of the four with an explicit numeric EPU index value in the narrative text. Driven by domestic security concerns and 2027-election political uncertainty, plus lingering Middle East/energy volatility effects. Country-in-focus heading literally reads 'Republic of Congo DRC' in the source document, which conflates two distinct countries (Republic of the Congo and the Democratic Republic of the Congo) - preserved as written rather than silently corrected.",
+    "source": "CAPE EPU index"
+  },
+  "extraction_notes": "Manually curated from data/raw/bulletins/Cape Economic Performance and Prospect Bulletin July 2026.docx."
+}

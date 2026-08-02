@@ -1,0 +1,55 @@
+{
+  "description": "Monthly time series merged across the March/April/May/July 2026 bulletins. Each bulletin reports trailing data (e.g. the March edition's freshest PMI reading is for February), so points here are indexed by the month the figure actually describes, not the bulletin's cover month. See data_notes.md for known gaps and source inconsistencies.",
+  "pmi_stanbic": [
+    { "month": "2026-01", "value": 49.7 },
+    { "month": "2026-02", "value": 53.2 },
+    { "month": "2026-03", "value": 51.9 },
+    { "month": "2026-04", "value": 52.4 },
+    { "month": "2026-05", "value": 54.1 },
+    { "month": "2026-06", "value": 53.4 }
+  ],
+  "pmi_cbn_composite": [
+    { "month": "2026-01", "value": 55.7 },
+    { "month": "2026-02", "value": 56.4 },
+    { "month": "2026-03", "value": 53.2 },
+    { "month": "2026-04", "value": 49.4 }
+  ],
+  "headline_inflation_yoy": [
+    { "month": "2025-12", "value": 15.15 },
+    { "month": "2026-01", "value": 15.10 },
+    { "month": "2026-02", "value": 15.06 },
+    { "month": "2026-03", "value": 15.38 },
+    { "month": "2026-04", "value": 15.69 },
+    { "month": "2026-05", "value": 15.93 }
+  ],
+  "food_inflation_yoy": [
+    { "month": "2026-01", "value": 8.89 },
+    { "month": "2026-02", "value": 12.12 },
+    { "month": "2026-03", "value": 14.31 },
+    { "month": "2026-05", "value": 16.96 }
+  ],
+  "core_inflation_yoy": [
+    { "month": "2026-01", "value": 17.72 },
+    { "month": "2026-02", "value": 15.88 },
+    { "month": "2026-03", "value": 16.21 },
+    { "month": "2026-05", "value": 16.82 }
+  ],
+  "faac_total_allocation_ngn_bn": [
+    { "month": "2025-12", "value": 1969.0 },
+    { "month": "2026-02", "value": 1894.04, "note": "labeling inconsistency across editions, see data_notes.md" },
+    { "month": "2026-03", "value": 2036.35 },
+    { "month": "2026-04", "value": 2257.0, "note": "value only appears as 'preceding month' comparator in the July edition, not detailed in its own right" },
+    { "month": "2026-05", "value": 2300.0 }
+  ],
+  "epu_index": [
+    { "month": "2026-04", "value": 132 },
+    { "month": "2026-05", "value": 137 }
+  ],
+  "gdp_growth_yoy": [
+    { "quarter": "2025-Q4", "value": 4.07 }
+  ],
+  "gdp_growth_annual": [
+    { "year": 2024, "value": 3.38 },
+    { "year": 2025, "value": 3.87 }
+  ]
+}

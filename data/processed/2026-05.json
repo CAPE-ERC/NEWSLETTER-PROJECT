@@ -1,0 +1,61 @@
+{
+  "edition": { "month": "May", "year": 2026 },
+  "global": {
+    "global_growth_outlook_pct": null,
+    "global_inflation_pct": null,
+    "monetary_policy_notes": "AE central banks recalibrating easing expectations amid renewed shocks; EMDE central banks more conservative/defensive.",
+    "market_notes": "April 2026: S&P 500 +10.4% (strongest since late 2020, closed above 7,200); Nasdaq +15.3%; Dow +7.1%. Spot Bitcoin ETFs saw record 2026 inflows (US$2.0-2.4bn); total AUM > US$100bn.",
+    "commodity_notes": "Brent US$98-138/bbl (avg ~US$117.29, closed US$124.24); WTI US$95-130/bbl; OPEC basket US$110-125/bbl; Bonny Light peaked >US$134/bbl (closed US$134.86); gold US$4,540-4,890/oz, closed ~US$4,627/oz (-1.5% MoM); Bitcoin US$68,000-79,000 (+12-16%); total crypto market cap ~US$2.7tn (+~10%).",
+    "source": "IMF/World Bank/market commentary (narrative, no single indexed figure in text)"
+  },
+  "nigeria_output": {
+    "pmi": 52.4,
+    "pmi_prior": 51.9,
+    "pmi_period": "April 2026",
+    "pmi_source_detail": "Stanbic IBTC PMI (3rd consecutive month of improvement); CBN Composite PMI fell into contraction at 49.4 (from 53.2 in March 2026) - first contraction in 16 months",
+    "pmi_months_above_50": null,
+    "gdp_growth_yoy_pct": null,
+    "gdp_growth_yoy_prior_pct": null,
+    "gdp_period": null,
+    "gdp_annual_pct": null,
+    "gdp_annual_prior_pct": null,
+    "source": "Stanbic IBTC PMI; CBN (GDP not restated in narrative this edition, only referenced via Figures 4-5)"
+  },
+  "prices": {
+    "headline_inflation_yoy_pct": 15.38,
+    "headline_inflation_yoy_prior_pct": 15.06,
+    "headline_inflation_mom_pct": 4.18,
+    "headline_inflation_mom_prior_pct": 2.01,
+    "headline_inflation_12m_avg_pct": 20.05,
+    "headline_inflation_12m_avg_prior_year_pct": 18.58,
+    "food_inflation_yoy_pct": 14.31,
+    "food_inflation_yoy_prior_pct": 25.22,
+    "food_inflation_mom_pct": 4.17,
+    "food_inflation_mom_prior_pct": 4.69,
+    "core_inflation_yoy_pct": 16.21,
+    "core_inflation_yoy_prior_pct": 27.12,
+    "core_inflation_mom_pct": 4.03,
+    "core_inflation_mom_prior_pct": 0.89,
+    "period": "March 2026",
+    "source": "NBS"
+  },
+  "fiscal": {
+    "faac_total_allocation_ngn_bn": 2036.35,
+    "faac_total_allocation_prior_ngn_bn": 1894.04,
+    "faac_period": "March 2026 revenue, disbursed April 2026 (per this edition's own labeling)",
+    "federal_share_ngn_bn": 789.16,
+    "state_share_ngn_bn": 657.60,
+    "lg_share_ngn_bn": 468.83,
+    "derivation_13pct_ngn_bn": 120.76,
+    "notes": "Gross Federation revenue ₦2.364tn; ₦81.08bn cost of collection, ₦246.87bn transfers/refunds/savings. Gross statutory revenue up to ₦1.699tn (from ₦1.56tn); VAT declined to ₦664.43bn (from ₦668.45bn).",
+    "source": "FAAC"
+  },
+  "country_in_focus": {
+    "country": "Republic of Burkina Faso",
+    "epu_index_value": null,
+    "epu_index_prior": null,
+    "notes": "Same country-in-focus as the April 2026 edition (Burkina Faso repeated) - likely unintentional reuse in the source document, flagged rather than corrected. EPU section (Fig. 6) narrative only, no numeric index value stated in text.",
+    "source": "CAPE EPU index"
+  },
+  "extraction_notes": "Manually curated from data/raw/bulletins/Cape Economic Performance and Prospect Bulletin May 2026.docx. This file has a corrupted embedded image (word/media/image4.png, bad CRC-32) pre-existing in the original upload; text extraction required a raw-XML fallback since python-docx's Document() call fails on the corrupt part."
+}

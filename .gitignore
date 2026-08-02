@@ -7,9 +7,6 @@ venv/
 build/
 dist/
 
-# generated output, not source
-data/processed/*
-!data/processed/.gitkeep
 data/trend_db/*.db
 data/trend_db/*.sqlite
 

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CAPE Newsletter — Pipeline Dashboard</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <h1>CAPE Newsletter Automation</h1>
+    <p class="subtitle">Local test dashboard for the RAG + agent pipeline — trend data, extracted editions, and draft generation.</p>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="panel" id="trend-panel">
+    <h2>Trend database</h2>
+    <p class="hint">Merged monthly series from the 4 available editions. See <code>data/trend_db/data_notes.md</code> for known gaps.</p>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Nigeria PMI</h3>
+        <div id="chart-pmi" class="chart"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Inflation (YoY)</h3>
+        <div id="chart-inflation" class="chart"></div>
+      </div>
+      <div class="chart-card">
+        <h3>FAAC total allocation (₦ billion)</h3>
+        <div id="chart-faac" class="chart"></div>
+      </div>
+      <div class="chart-card">
+        <h3>EPU index</h3>
+        <div id="chart-epu" class="chart"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="editions-panel">
+    <h2>Editions</h2>
+    <p class="hint">Structured data curated from each bulletin's source text (<code>data/processed/*.json</code>).</p>
+    <div class="editions-layout">
+      <ul id="edition-list" class="edition-list"></ul>
+      <div id="edition-detail" class="edition-detail">
+        <p class="empty-state">Select an edition to inspect its extracted data.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="generate-panel">
+    <h2>Test draft generation</h2>
+    <p class="hint">
+      Calls the real writer agent (Anthropic API) using the section's structured data plus the style guide.
+      Requires <code>ANTHROPIC_API_KEY</code> in <code>.env</code>. Only sections with a completed prompt
+      template (currently Price Update) are enabled.
+    </p>
+    <form id="generate-form" class="generate-form">
+      <label>
+        Edition
+        <select id="gen-edition"></select>
+      </label>
+      <label>
+        Section
+        <select id="gen-section"></select>
+      </label>
+      <button type="submit">Generate draft</button>
+    </form>
+    <div id="generate-result" class="generate-result"></div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

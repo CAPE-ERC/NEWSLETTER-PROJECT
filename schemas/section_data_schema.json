@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CAPE Bulletin Monthly Data",
+  "description": "Structured facts a data-collection agent must return for one monthly edition, before any prose is written. Source: field names inferred from March/April/May/July 2026 bulletins; refine once the full 2023-to-date archive is processed.",
+  "type": "object",
+  "required": ["edition", "global", "nigeria_output", "prices", "fiscal", "country_in_focus"],
+  "properties": {
+    "edition": {
+      "type": "object",
+      "properties": {
+        "month": { "type": "string", "description": "e.g. 'August'" },
+        "year": { "type": "integer" },
+        "publish_date": { "type": "string", "format": "date" }
+      },
+      "required": ["month", "year"]
+    },
+    "global": {
+      "type": "object",
+      "description": "Global Economic Update / Outlook sections",
+      "properties": {
+        "global_growth_outlook_pct": { "type": ["number", "null"] },
+        "global_inflation_pct": { "type": ["number", "null"] },
+        "monetary_policy_notes": { "type": "string" },
+        "market_notes": { "type": "string" },
+        "commodity_notes": { "type": "string" },
+        "source": { "type": "string", "description": "e.g. IMF WEO, World Bank" }
+      }
+    },
+    "nigeria_output": {
+      "type": "object",
+      "description": "Nigeria's Output Growth / Outlook sections",
+      "properties": {
+        "pmi": { "type": ["number", "null"] },
+        "pmi_prior": { "type": ["number", "null"] },
+        "pmi_months_above_50": { "type": ["integer", "null"] },
+        "gdp_growth_yoy_pct": { "type": ["number", "null"] },
+        "gdp_growth_qoq_pct": { "type": ["number", "null"] },
+        "source": { "type": "string", "description": "e.g. Stanbic IBTC PMI, NBS GDP" }
+      }
+    },
+    "prices": {
+      "type": "object",
+      "description": "Price Update section",
+      "properties": {
+        "headline_inflation_yoy_pct": { "type": ["number", "null"] },
+        "headline_inflation_mom_pct": { "type": ["number", "null"] },
+        "food_inflation_yoy_pct": { "type": ["number", "null"] },
+        "core_inflation_yoy_pct": { "type": ["number", "null"] },
+        "source": { "type": "string", "const": "NBS" }
+      }
+    },
+    "fiscal": {
+      "type": "object",
+      "description": "Fiscal Operations Update (FAAC)",
+      "properties": {
+        "faac_total_allocation_ngn_bn": { "type": ["number", "null"] },
+        "faac_total_allocation_prior_ngn_bn": { "type": ["number", "null"] },
+        "notes": { "type": "string" },
+        "source": { "type": "string", "const": "FAAC" }
+      }
+    },
+    "country_in_focus": {
+      "type": "object",
+      "properties": {
+        "country": { "type": "string", "description": "Manually supplied editorial choice" },
+        "epu_index_value": { "type": ["number", "null"] },
+        "epu_index_prior": { "type": ["number", "null"] },
+        "notes": { "type": "string" },
+        "source": { "type": "string", "const": "CAPE EPU index" }
+      },
+      "required": ["country"]
+    }
+  }
+}

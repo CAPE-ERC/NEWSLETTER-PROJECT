@@ -1,0 +1,50 @@
+{
+  "edition": { "month": "March", "year": 2026 },
+  "global": {
+    "global_growth_outlook_pct": null,
+    "global_inflation_pct": null,
+    "monetary_policy_notes": "AE central banks cautious shift toward easing, gradual and data-dependent; EMDE central banks cautiously easing but constrained by capital-flow/FX risk.",
+    "market_notes": "Feb 2026: S&P 500 -0.9%; Dow +0.2%; S&P MidCap 400 +3.1% (rotation out of mega-cap tech).",
+    "commodity_notes": "Brent US$70.89-71.87/bbl, WTI US$66.66-70/bbl (late Feb); gold ~US$5,278/oz (late Feb); Bitcoin fell to ~US$78,000 YTD (~US$70,731 mid-Feb); total crypto market cap ~US$2.57tn.",
+    "source": "IMF/World Bank/market commentary (narrative, no single indexed figure in text)"
+  },
+  "nigeria_output": {
+    "pmi": 53.2,
+    "pmi_prior": 49.7,
+    "pmi_period": "February 2026",
+    "pmi_source_detail": "Stanbic IBTC PMI; CBN Composite PMI also rose to 56.4 (from 55.7 in Jan 2026)",
+    "pmi_months_above_50": null,
+    "gdp_growth_yoy_pct": 4.07,
+    "gdp_growth_yoy_prior_pct": 3.76,
+    "gdp_period": "Q4 2025",
+    "gdp_annual_pct": 3.87,
+    "gdp_annual_prior_pct": 3.38,
+    "source": "Stanbic IBTC PMI; CBN; NBS GDP (Q4 2025 release)"
+  },
+  "prices": {
+    "headline_inflation_yoy_pct": 15.10,
+    "headline_inflation_yoy_prior_pct": 15.15,
+    "headline_inflation_mom_pct": -2.88,
+    "headline_inflation_mom_prior_pct": 0.54,
+    "food_inflation_yoy_pct": 8.89,
+    "food_inflation_yoy_prior_pct": 29.63,
+    "core_inflation_yoy_pct": 17.72,
+    "core_inflation_yoy_prior_pct": 25.27,
+    "period": "January 2026",
+    "source": "NBS"
+  },
+  "fiscal": {
+    "faac_total_allocation_ngn_bn": null,
+    "faac_total_allocation_prior_ngn_bn": null,
+    "notes": "This edition's Fiscal Operations Update covers public DEBT (DMO), not FAAC allocations — differs from April/May/July editions. Total public debt ₦153.3tn (Sep 2025, +0.6% QoQ, +7.7% YoY); external debt US$48.5bn (₦71.5tn); domestic debt ₦81.8tn (53.4% of total vs 46.6% external); debt-to-GDP ~36%; 2026 fiscal deficit projected ₦25.3tn vs ₦13.5tn in 2025.",
+    "source": "Debt Management Office (DMO)"
+  },
+  "country_in_focus": {
+    "country": "Republic of Benin",
+    "epu_index_value": null,
+    "epu_index_prior": null,
+    "notes": "Nigeria's own EPU index (not Benin's) spiked in Feb 2026 after the Iran war outbreak; no numeric EPU value stated in this edition's text, only descriptive commentary. Country-in-focus figure (Fig. 10) not captured in extracted text.",
+    "source": "CAPE EPU index"
+  },
+  "extraction_notes": "Manually curated from data/raw/bulletins/Cape Economic Performance and Prospect Bulletin March 2026.docx. Values are only populated where explicitly stated in the narrative text; unstated figures are left null rather than inferred."
+}

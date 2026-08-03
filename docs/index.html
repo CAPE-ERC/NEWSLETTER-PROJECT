@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CAPE Newsletter — Agent Prompt Kit</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <h1>CAPE Newsletter Automation</h1>
+    <p class="subtitle">Public, static viewer for the bulletin's section agents — browse extracted edition data, build each agent's exact prompt, and review its output.</p>
+  </div>
+</header>
+
+<div class="banner">
+  <strong>This page makes no API calls.</strong> It's a static site with no backend, so it can't call
+  Anthropic on your behalf. Pick an edition and section below, review/edit the structured data, then
+  <strong>Build prompt</strong> and copy it into
+  <a href="https://claude.ai" target="_blank" rel="noopener">claude.ai</a> (or run the
+  <a href="https://github.com/CAPE-ERC/NEWSLETTER-PROJECT#run-the-dashboard" target="_blank" rel="noopener">local dashboard</a>
+  with your own <code>ANTHROPIC_API_KEY</code>) to actually generate the draft. Paste the result back
+  into the output box to keep it next to the data while you review — it stays in your browser only.
+</div>
+
+<main class="layout">
+  <section class="panel" id="editions-panel">
+    <h2>Editions</h2>
+    <p class="hint">Structured data curated from each bulletin's source text.</p>
+    <div class="editions-layout">
+      <ul id="edition-list" class="edition-list"></ul>
+      <div id="edition-detail" class="edition-detail">
+        <p class="empty-state">Select an edition to inspect its extracted data.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="builder-panel">
+    <h2>Section agent — prompt builder</h2>
+    <p class="hint">
+      Reconstructs exactly what <code>writer_agents.write_section()</code> sends the model: the
+      section's prompt template + the house style guide as the system prompt, and this structured
+      data as the user message. Sections without a finished prompt template are marked
+      <em>placeholder</em> — you'll still see what's there.
+    </p>
+
+    <div class="builder-form-row">
+      <label>
+        Edition
+        <select id="b-edition"></select>
+      </label>
+      <label>
+        Section
+        <select id="b-section"></select>
+      </label>
+      <span id="b-readiness" class="readiness-badge"></span>
+    </div>
+
+    <fieldset id="b-data-fieldset" class="data-fieldset">
+      <legend>Data for this section</legend>
+      <p class="hint">
+        Pre-filled from the saved edition. Edit before building the prompt — this is where manual
+        editorial input belongs, e.g. <strong>country in focus</strong> is a human choice each month,
+        not something the pipeline infers. Blank a field to send it as unknown (<code>null</code>).
+      </p>
+      <div id="b-data-fields" class="data-fields"></div>
+      <button type="button" id="b-data-reset" class="secondary-button">Reset to saved data</button>
+    </fieldset>
+
+    <button type="button" id="b-build" class="primary-button">Build prompt</button>
+
+    <div id="b-prompt-out" class="prompt-out" hidden>
+      <div class="prompt-block">
+        <div class="prompt-block-head">
+          <h3>System prompt</h3>
+          <button type="button" class="copy-button" data-copy-target="b-system">Copy</button>
+        </div>
+        <textarea id="b-system" class="prompt-textarea" readonly rows="10"></textarea>
+      </div>
+      <div class="prompt-block">
+        <div class="prompt-block-head">
+          <h3>User message</h3>
+          <button type="button" class="copy-button" data-copy-target="b-user">Copy</button>
+        </div>
+        <textarea id="b-user" class="prompt-textarea" readonly rows="10"></textarea>
+      </div>
+      <button type="button" id="b-copy-both" class="secondary-button">Copy both (ready to paste into claude.ai)</button>
+    </div>
+
+    <div class="output-block">
+      <div class="prompt-block-head">
+        <h3>Output — paste the model's response here to review</h3>
+        <button type="button" id="b-clear-output" class="secondary-button">Clear</button>
+      </div>
+      <p class="hint">Saved only in your browser (localStorage), per edition + section. Never sent anywhere.</p>
+      <textarea id="b-output" class="prompt-textarea" rows="12" placeholder="Paste the generated draft here…"></textarea>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

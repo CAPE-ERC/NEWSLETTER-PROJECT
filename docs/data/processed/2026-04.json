@@ -1,0 +1,57 @@
+{
+  "edition": { "month": "April", "year": 2026 },
+  "global": {
+    "global_growth_outlook_pct": null,
+    "global_inflation_pct": null,
+    "monetary_policy_notes": "AE central banks more cautious after Middle East shock; EMDE central banks slower/more risk-averse easing.",
+    "market_notes": "March 2026: S&P 500 -5.1%; Dow -5.2% (ends 10-month win streak); Nasdaq -4.8% (correction territory); S&P MidCap 400 -6.3%. SEC issued interpretive release on digital-asset securities classification (Mar 17).",
+    "commodity_notes": "Crude elevated/volatile on Middle East risk premium; gold peaked ~US$5,300/oz then fell to US$4,300-5,000/oz range; Bitcoin consolidated US$68,000-71,000; total crypto market cap ~US$2.46tn; stablecoin valuation record US$316bn.",
+    "source": "IMF/World Bank/market commentary (narrative, no single indexed figure in text)"
+  },
+  "nigeria_output": {
+    "pmi": 51.9,
+    "pmi_prior": 53.2,
+    "pmi_period": "March 2026",
+    "pmi_source_detail": "Stanbic IBTC PMI; CBN Composite PMI eased to 53.2 (from 56.4 in Feb 2026)",
+    "pmi_months_above_50": null,
+    "gdp_growth_yoy_pct": null,
+    "gdp_growth_yoy_prior_pct": null,
+    "gdp_period": null,
+    "gdp_annual_pct": null,
+    "gdp_annual_prior_pct": null,
+    "source": "Stanbic IBTC PMI; CBN (GDP not restated in narrative this edition, only referenced via Figures 2-3)"
+  },
+  "prices": {
+    "headline_inflation_yoy_pct": 15.06,
+    "headline_inflation_yoy_prior_pct": 15.10,
+    "headline_inflation_mom_pct": 2.01,
+    "headline_inflation_mom_prior_pct": -2.88,
+    "food_inflation_yoy_pct": 12.12,
+    "food_inflation_yoy_prior_pct": 26.98,
+    "core_inflation_yoy_pct": 15.88,
+    "core_inflation_yoy_prior_pct": 25.66,
+    "period": "February 2026",
+    "cpi_index": 130.0,
+    "cpi_index_prior": 127.4,
+    "source": "NBS"
+  },
+  "fiscal": {
+    "faac_total_allocation_ngn_bn": 1894.0,
+    "faac_total_allocation_prior_ngn_bn": 1969.0,
+    "faac_period": "February 2026 revenue (per this edition's own labeling)",
+    "federal_share_ngn_bn": 675.09,
+    "state_share_ngn_bn": 651.53,
+    "lg_share_ngn_bn": 456.47,
+    "derivation_13pct_ngn_bn": 110.95,
+    "notes": "Gross Federation revenue ₦2.230tn (statutory ₦1.274tn + VAT ₦619.119bn). Oil & gas royalty and excise duty up; PPT, HT, CIT/CGT, stamp duties, VAT declined.",
+    "source": "FAAC"
+  },
+  "country_in_focus": {
+    "country": "Republic of Burkina Faso",
+    "epu_index_value": null,
+    "epu_index_prior": null,
+    "notes": "EPU section (Fig. 9) is narrative only in this edition, no numeric index value stated in text.",
+    "source": "CAPE EPU index"
+  },
+  "extraction_notes": "Manually curated from data/raw/bulletins/Cape Economic Performance and Prospect Bulletin April 2026.docx. Values only populated where explicitly stated in the narrative text. NOTE: the ₦1.894tn FAAC figure this edition labels as 'February 2026' revenue is the same figure the May 2026 edition later labels as distributed 'in March 2026' — see data/trend_db/data_notes.md for the discrepancy."
+}

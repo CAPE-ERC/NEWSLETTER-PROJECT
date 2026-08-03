@@ -57,15 +57,29 @@
       template (currently Price Update) are enabled.
     </p>
     <form id="generate-form" class="generate-form">
-      <label>
-        Edition
-        <select id="gen-edition"></select>
-      </label>
-      <label>
-        Section
-        <select id="gen-section"></select>
-      </label>
-      <button type="submit">Generate draft</button>
+      <div class="generate-form-row">
+        <label>
+          Edition
+          <select id="gen-edition"></select>
+        </label>
+        <label>
+          Section
+          <select id="gen-section"></select>
+        </label>
+      </div>
+
+      <fieldset id="gen-data-fieldset" class="data-fieldset">
+        <legend>Data for this section</legend>
+        <p class="hint">
+          Pre-filled from the saved edition. Edit any field before generating — this is where manual
+          editorial input belongs, e.g. <strong>country in focus</strong> is a human choice each month,
+          not something the pipeline infers. Blank a field to send it as unknown (<code>null</code>).
+        </p>
+        <div id="gen-data-fields" class="data-fields"></div>
+        <button type="button" id="gen-data-reset" class="secondary-button">Reset to saved data</button>
+      </fieldset>
+
+      <button type="submit" id="gen-submit">Generate draft</button>
     </form>
     <div id="generate-result" class="generate-result"></div>
   </section>

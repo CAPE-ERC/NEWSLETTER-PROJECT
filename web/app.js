@@ -227,10 +227,123 @@ async function loadSections() {
     const opt = document.createElement("option");
     opt.value = name;
     opt.textContent = ready.includes(name) ? name.replace(/_/g, " ") : `${name.replace(/_/g, " ")} (not ready)`;
-    opt.disabled = !ready.includes(name);
     select.appendChild(opt);
   });
 }
+
+// --- data/questions panel ----------------------------------------------------
+// Mirrors SECTION_DATA_KEY in src/cape_newsletter/api.py: which key in a
+// processed edition's JSON holds the structured data for each section.
+const SECTION_DATA_KEY = {
+  global_economic_update: "global",
+  global_economic_outlook: "global",
+  nigeria_output_growth: "nigeria_output",
+  output_growth_outlook: "nigeria_output",
+  price_update: "prices",
+  fiscal_operations: "fiscal",
+  country_in_focus: "country_in_focus",
+};
+
+// Fields worth calling out as manual editorial input, not pipeline-derived —
+// see docs/architecture.md's human-in-the-loop notes.
+const MANUAL_FIELD_HINTS = {
+  country: "Editorial choice — supplied manually each month, not inferred from data.",
+};
+
+const editionRecordCache = new Map();
+let savedSectionData = null;
+const dataFieldInputs = new Map();
+
+async function getEditionRecord(id) {
+  if (!editionRecordCache.has(id)) {
+    editionRecordCache.set(id, await fetch(`${API}/editions/${id}`).then((r) => r.json()));
+  }
+  return editionRecordCache.get(id);
+}
+
+function renderDataFields(data) {
+  const container = document.getElementById("gen-data-fields");
+  container.innerHTML = "";
+  dataFieldInputs.clear();
+
+  Object.entries(data).forEach(([key, value]) => {
+    const wrap = document.createElement("label");
+    wrap.className = "data-field";
+
+    const labelText = document.createElement("span");
+    labelText.className = "data-field-label";
+    labelText.textContent = key.replace(/_/g, " ");
+    wrap.appendChild(labelText);
+
+    if (MANUAL_FIELD_HINTS[key]) {
+      const hint = document.createElement("span");
+      hint.className = "data-field-hint";
+      hint.textContent = MANUAL_FIELD_HINTS[key];
+      wrap.appendChild(hint);
+    }
+
+    const isObject = value !== null && typeof value === "object";
+    const asText = isObject ? JSON.stringify(value) : value ?? "";
+    const long = typeof asText === "string" && asText.length > 60;
+
+    const input = document.createElement(long ? "textarea" : "input");
+    if (!long) input.type = "text";
+    input.value = asText;
+    input.dataset.key = key;
+    input.dataset.type = isObject ? "object" : typeof value;
+    wrap.appendChild(input);
+
+    dataFieldInputs.set(key, input);
+    container.appendChild(wrap);
+  });
+}
+
+function collectDataFromFields() {
+  const result = {};
+  dataFieldInputs.forEach((input, key) => {
+    const raw = input.value.trim();
+    const type = input.dataset.type;
+    if (raw === "") {
+      result[key] = null;
+    } else if (type === "number") {
+      const n = Number(raw);
+      result[key] = Number.isNaN(n) ? raw : n;
+    } else if (type === "object") {
+      try {
+        result[key] = JSON.parse(raw);
+      } catch {
+        result[key] = raw;
+      }
+    } else {
+      result[key] = raw;
+    }
+  });
+  return result;
+}
+
+async function updateDataPanel() {
+  const edition_id = document.getElementById("gen-edition").value;
+  const section = document.getElementById("gen-section").value;
+  const fieldset = document.getElementById("gen-data-fieldset");
+  const dataKey = SECTION_DATA_KEY[section];
+
+  if (!edition_id || !dataKey) {
+    fieldset.hidden = true;
+    savedSectionData = null;
+    return;
+  }
+
+  const record = await getEditionRecord(edition_id);
+  savedSectionData = record[dataKey] || {};
+  fieldset.hidden = false;
+  renderDataFields(savedSectionData);
+}
+
+document.getElementById("gen-edition").addEventListener("change", updateDataPanel);
+document.getElementById("gen-section").addEventListener("change", updateDataPanel);
+document.getElementById("gen-data-reset").addEventListener("click", () => {
+  if (savedSectionData) renderDataFields(savedSectionData);
+});
 
 document.getElementById("generate-form").addEventListener("submit", async (evt) => {
   evt.preventDefault();
@@ -239,23 +352,30 @@ document.getElementById("generate-form").addEventListener("submit", async (evt) 
   const result = document.getElementById("generate-result");
   result.innerHTML = '<p class="loading">Calling the writer agent…</p>';
 
+  const data = dataFieldInputs.size ? collectDataFromFields() : undefined;
+
   try {
     const res = await fetch(`${API}/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ edition_id, section }),
+      body: JSON.stringify({ edition_id, section, data }),
     });
-    const data = await res.json();
+    const resData = await res.json();
     if (!res.ok) {
-      result.innerHTML = `<p class="error">${data.detail || "Request failed."}</p>`;
+      result.innerHTML = `<p class="error">${resData.detail || "Request failed."}</p>`;
       return;
     }
-    result.textContent = data.text;
+    result.textContent = resData.text;
   } catch (err) {
     result.innerHTML = `<p class="error">${err.message}</p>`;
   }
 });
 
-loadTrend();
-loadEditions();
-loadSections();
+async function init() {
+  await loadTrend();
+  await loadEditions();
+  await loadSections();
+  await updateDataPanel();
+}
+
+init();

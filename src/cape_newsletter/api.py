@@ -92,6 +92,11 @@ def list_sections():
 class GenerateRequest(BaseModel):
     edition_id: str
     section: str
+    # Optional editorial override for this section's structured data — lets the
+    # dashboard's data-editor panel feed in manually-supplied or corrected
+    # figures (e.g. "country in focus" per docs/architecture.md's
+    # human-in-the-loop notes) instead of blindly using the saved edition file.
+    data: dict | None = None
 
 
 @app.post("/api/generate")
@@ -110,8 +115,12 @@ def generate_section(req: GenerateRequest):
     path = DATA_PROCESSED_DIR / f"{req.edition_id}.json"
     if not path.exists():
         raise HTTPException(status_code=404, detail=f"No edition '{req.edition_id}'")
-    record = json.loads(path.read_text(encoding="utf-8"))
-    section_data = record[SECTION_DATA_KEY[req.section]]
+
+    if req.data is not None:
+        section_data = req.data
+    else:
+        record = json.loads(path.read_text(encoding="utf-8"))
+        section_data = record[SECTION_DATA_KEY[req.section]]
 
     try:
         text = writer_agents.write_section(req.section, section_data)

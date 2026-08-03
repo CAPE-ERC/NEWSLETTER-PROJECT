@@ -1,74 +1,102 @@
 :root {
   color-scheme: light;
-  --page: #f7f6f3;
-  --surface: #fdfcfa;
-  --surface-raised: #ffffff;
-  --text-primary: #17150f;
-  --text-secondary: #55524a;
-  --text-muted: #918d80;
-  --border: rgba(23, 21, 15, 0.1);
-  --border-strong: rgba(23, 21, 15, 0.18);
-  --accent: #2a5fd6;
-  --good: #1f8a4c;
-  --critical: #c8433f;
+  /* warm stone/parchment, not white — deliberately a shade with body to it */
+  --page: #eee7d8;
+  --surface: #faf6ec;
+  --surface-raised: #fffdf7;
+  --text-primary: #211a0f;
+  --text-secondary: #5b5140;
+  --text-muted: #918468;
+  --border: rgba(33, 26, 15, 0.12);
+  --border-strong: rgba(33, 26, 15, 0.22);
+  --accent: #a8672f;
+  --good: #3c7a4e;
+  --critical: #b5432f;
+  --shadow: 0 1px 2px rgba(33, 26, 15, 0.04), 0 8px 24px -12px rgba(33, 26, 15, 0.18);
 
   /* phase palette — flows collect -> draft -> chart -> edit */
-  --phase-collect: #1f9d76;
-  --phase-draft: #5b53d6;
-  --phase-chart: #c98a1f;
-  --phase-edit: #cf4368;
+  --phase-collect: #1a8f6f;
+  --phase-draft: #5a4bc4;
+  --phase-chart: #b8791a;
+  --phase-edit: #b13a5c;
+
+  --mesh-1: color-mix(in srgb, var(--phase-collect) 22%, transparent);
+  --mesh-2: color-mix(in srgb, var(--phase-draft) 20%, transparent);
+  --mesh-3: color-mix(in srgb, var(--phase-chart) 18%, transparent);
+  --mesh-4: color-mix(in srgb, var(--phase-edit) 16%, transparent);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --page: #100f0c;
-    --surface: #1b1a16;
-    --surface-raised: #211f1a;
-    --text-primary: #f6f4ee;
-    --text-secondary: #c7c3b6;
-    --text-muted: #8f8b7e;
-    --border: rgba(246, 244, 238, 0.1);
-    --border-strong: rgba(246, 244, 238, 0.18);
-    --accent: #6f97ea;
-    --good: #4bc383;
-    --critical: #e2726e;
-    --phase-collect: #37b98c;
-    --phase-draft: #837bec;
-    --phase-chart: #dba53f;
-    --phase-edit: #e26e8c;
+    /* deep espresso-navy, not black — warm undertone so it doesn't read flat */
+    --page: #171420;
+    --surface: #211d2c;
+    --surface-raised: #292437;
+    --text-primary: #f3efe6;
+    --text-secondary: #c9c2d6;
+    --text-muted: #8c85a0;
+    --border: rgba(243, 239, 230, 0.1);
+    --border-strong: rgba(243, 239, 230, 0.2);
+    --accent: #e3a869;
+    --good: #5cc98a;
+    --critical: #e78479;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.6);
+    --phase-collect: #2fbf93;
+    --phase-draft: #9089f0;
+    --phase-chart: #e6b155;
+    --phase-edit: #ea86a4;
+    --mesh-1: color-mix(in srgb, var(--phase-collect) 20%, transparent);
+    --mesh-2: color-mix(in srgb, var(--phase-draft) 22%, transparent);
+    --mesh-3: color-mix(in srgb, var(--phase-chart) 16%, transparent);
+    --mesh-4: color-mix(in srgb, var(--phase-edit) 16%, transparent);
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #100f0c;
-  --surface: #1b1a16;
-  --surface-raised: #211f1a;
-  --text-primary: #f6f4ee;
-  --text-secondary: #c7c3b6;
-  --text-muted: #8f8b7e;
-  --border: rgba(246, 244, 238, 0.1);
-  --border-strong: rgba(246, 244, 238, 0.18);
-  --accent: #6f97ea;
-  --good: #4bc383;
-  --critical: #e2726e;
-  --phase-collect: #37b98c;
-  --phase-draft: #837bec;
-  --phase-chart: #dba53f;
-  --phase-edit: #e26e8c;
+  --page: #171420;
+  --surface: #211d2c;
+  --surface-raised: #292437;
+  --text-primary: #f3efe6;
+  --text-secondary: #c9c2d6;
+  --text-muted: #8c85a0;
+  --border: rgba(243, 239, 230, 0.1);
+  --border-strong: rgba(243, 239, 230, 0.2);
+  --accent: #e3a869;
+  --good: #5cc98a;
+  --critical: #e78479;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.6);
+  --phase-collect: #2fbf93;
+  --phase-draft: #9089f0;
+  --phase-chart: #e6b155;
+  --phase-edit: #ea86a4;
+  --mesh-1: color-mix(in srgb, var(--phase-collect) 20%, transparent);
+  --mesh-2: color-mix(in srgb, var(--phase-draft) 22%, transparent);
+  --mesh-3: color-mix(in srgb, var(--phase-chart) 16%, transparent);
+  --mesh-4: color-mix(in srgb, var(--phase-edit) 16%, transparent);
 }
 
 * { box-sizing: border-box; }
 
+html { background: var(--page); }
+
 body {
   margin: 0;
-  background: var(--page);
+  min-height: 100vh;
   color: var(--text-primary);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background-color: var(--page);
+  background-image:
+    radial-gradient(1100px 620px at 6% -12%, var(--mesh-1), transparent 60%),
+    radial-gradient(900px 560px at 104% -6%, var(--mesh-2), transparent 58%),
+    radial-gradient(820px 560px at 8% 110%, var(--mesh-3), transparent 55%),
+    radial-gradient(950px 620px at 100% 108%, var(--mesh-4), transparent 55%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 .topbar {
-  padding: 24px clamp(16px, 4vw, 48px) 0;
+  padding: 28px clamp(16px, 4vw, 48px) 20px;
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
@@ -76,8 +104,22 @@ body {
   align-items: flex-start;
   gap: 16px;
   flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
 }
-.topbar h1 { margin: 0 0 4px; font-size: 1.4rem; }
+.topbar h1 {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .topbar h1 {
+    background-image: linear-gradient(100deg, var(--text-primary) 55%, var(--accent) 130%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
 .subtitle { margin: 0; color: var(--text-secondary); max-width: 60ch; }
 .topbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -172,7 +214,7 @@ body {
 .phase-tab.phase-edit .phase-dot { background: var(--phase-edit); }
 .phase-tab.phase-report .phase-dot { background: var(--accent); }
 .phase-tab .phase-count { color: var(--text-muted); font-weight: 500; font-variant-numeric: tabular-nums; }
-.phase-tab.active { border-color: var(--border-strong); background: var(--surface-raised); color: var(--text-primary); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); }
+.phase-tab.active { border-color: var(--border-strong); background: var(--surface-raised); color: var(--text-primary); box-shadow: var(--shadow); }
 
 .agent-chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .agent-chip {
@@ -203,10 +245,21 @@ body {
 .agent-chip.active { border-color: var(--accent); color: var(--text-primary); font-weight: 600; }
 
 .panel {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px clamp(16px, 3vw, 28px);
+  border-radius: 14px;
+  padding: 22px clamp(16px, 3vw, 28px);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background-image: linear-gradient(90deg, var(--phase-collect), var(--phase-draft), var(--phase-chart), var(--phase-edit));
+  opacity: 0.7;
 }
 .panel h2 { margin: 0; }
 .hint { color: var(--text-secondary); font-size: 0.9rem; }

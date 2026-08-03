@@ -3,102 +3,140 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CAPE Newsletter — Agent Prompt Kit</title>
+<title>CAPE Newsletter — Agent Workbench</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 <header class="topbar">
-  <div>
-    <h1>CAPE Newsletter Automation</h1>
-    <p class="subtitle">Public, static viewer for the bulletin's section agents — browse extracted edition data, build each agent's exact prompt, and review its output.</p>
+  <div class="topbar-title">
+    <h1>CAPE Newsletter — Agent Workbench</h1>
+    <p class="subtitle">Feed each agent a source file or another agent's output. Chain them until the bulletin is complete.</p>
+  </div>
+  <div class="topbar-actions">
+    <button type="button" id="session-export" class="ghost-button" title="Download this session as a .json file">Export session</button>
+    <label class="ghost-button" title="Load a previously exported session">
+      Import session
+      <input type="file" id="session-import" accept="application/json" hidden />
+    </label>
+    <button type="button" id="session-reset" class="ghost-button danger" title="Clear all agent inputs/outputs">Reset all</button>
   </div>
 </header>
 
 <div class="banner">
-  <strong>This page makes no API calls.</strong> It's a static site with no backend, so it can't call
-  Anthropic on your behalf. Pick an edition and section below, review/edit the structured data, then
-  <strong>Build prompt</strong> and copy it into
-  <a href="https://claude.ai" target="_blank" rel="noopener">claude.ai</a> (or run the
-  <a href="https://github.com/CAPE-ERC/NEWSLETTER-PROJECT#run-the-dashboard" target="_blank" rel="noopener">local dashboard</a>
-  with your own <code>ANTHROPIC_API_KEY</code>) to actually generate the draft. Paste the result back
-  into the output box to keep it next to the data while you review — it stays in your browser only.
+  <strong>Static, no backend.</strong> Files are parsed entirely in your browser (SheetJS / mammoth.js / pdf.js).
+  Nothing is uploaded anywhere. Each agent step builds a prompt — copy it into
+  <a href="https://claude.ai" target="_blank" rel="noopener">claude.ai</a> (or run the pipeline for real
+  with your own <code>ANTHROPIC_API_KEY</code> against the local dashboard), then paste the result back.
+  That output is saved in this browser and becomes available as input to any downstream agent.
+</div>
+
+<div class="progress-rail" id="progress-rail" aria-label="Pipeline progress">
+  <div class="progress-fill" id="progress-fill"></div>
 </div>
 
 <main class="layout">
-  <section class="panel" id="editions-panel">
-    <h2>Editions</h2>
-    <p class="hint">Structured data curated from each bulletin's source text.</p>
-    <div class="editions-layout">
-      <ul id="edition-list" class="edition-list"></ul>
-      <div id="edition-detail" class="edition-detail">
-        <p class="empty-state">Select an edition to inspect its extracted data.</p>
+  <nav class="phase-tabs" id="phase-tabs" role="tablist" aria-label="Pipeline phase"></nav>
+  <div class="agent-chips" id="agent-chips" role="tablist" aria-label="Agent"></div>
+
+  <section class="panel workbench" id="workbench-panel">
+    <div class="workbench-head">
+      <div>
+        <h2 id="agent-title">—</h2>
+        <p class="hint" id="agent-hint"></p>
       </div>
-    </div>
-  </section>
-
-  <section class="panel" id="builder-panel">
-    <h2>Section agent — prompt builder</h2>
-    <p class="hint">
-      Reconstructs exactly what <code>writer_agents.write_section()</code> sends the model: the
-      section's prompt template + the house style guide as the system prompt, and this structured
-      data as the user message. Sections without a finished prompt template are marked
-      <em>placeholder</em> — you'll still see what's there.
-    </p>
-
-    <div class="builder-form-row">
-      <label>
-        Edition
-        <select id="b-edition"></select>
-      </label>
-      <label>
-        Section
-        <select id="b-section"></select>
-      </label>
-      <span id="b-readiness" class="readiness-badge"></span>
+      <span class="status-badge" id="agent-status"></span>
     </div>
 
-    <fieldset id="b-data-fieldset" class="data-fieldset">
-      <legend>Data for this section</legend>
-      <p class="hint">
-        Pre-filled from the saved edition. Edit before building the prompt — this is where manual
-        editorial input belongs, e.g. <strong>country in focus</strong> is a human choice each month,
-        not something the pipeline infers. Blank a field to send it as unknown (<code>null</code>).
-      </p>
-      <div id="b-data-fields" class="data-fields"></div>
-      <button type="button" id="b-data-reset" class="secondary-button">Reset to saved data</button>
-    </fieldset>
+    <div class="upstream-hint" id="upstream-hint"></div>
 
-    <button type="button" id="b-build" class="primary-button">Build prompt</button>
+    <div class="input-tabs" role="tablist">
+      <button type="button" class="input-tab active" data-tab="upload">Upload file</button>
+      <button type="button" class="input-tab" data-tab="reuse">Use another agent's output</button>
+      <button type="button" class="input-tab" data-tab="paste">Paste text</button>
+      <button type="button" class="input-tab" data-tab="sample">Sample edition (testing)</button>
+    </div>
 
-    <div id="b-prompt-out" class="prompt-out" hidden>
+    <div class="input-pane" id="pane-upload">
+      <div class="dropzone" id="dropzone">
+        <p><strong>Drop a file here</strong> or click to browse</p>
+        <p class="hint">.xlsx · .csv · .docx · .pdf · .txt · .md · .json</p>
+        <input type="file" id="file-input" accept=".xlsx,.xls,.csv,.docx,.pdf,.txt,.md,.json" hidden />
+      </div>
+      <p id="parse-status" class="hint"></p>
+    </div>
+
+    <div class="input-pane" id="pane-reuse" hidden>
+      <label class="field">
+        <span>Pull working input from</span>
+        <select id="reuse-select"></select>
+      </label>
+      <button type="button" id="reuse-load" class="secondary-button">Load into working input</button>
+    </div>
+
+    <div class="input-pane" id="pane-paste" hidden>
+      <p class="hint">Type or paste directly into the working input below.</p>
+    </div>
+
+    <div class="input-pane" id="pane-sample" hidden>
+      <label class="field">
+        <span>Load bundled sample data (from the 4 curated editions) — useful for testing without a real source file</span>
+        <select id="sample-select">
+          <option value="">— none —</option>
+        </select>
+      </label>
+    </div>
+
+    <label class="field working-input-field">
+      <span>Working input <span class="hint">(editable — this is what gets sent to the agent)</span></span>
+      <textarea id="working-input" class="mono-textarea" rows="10" placeholder="Upload a file, pull another agent's output, or paste text…"></textarea>
+    </label>
+
+    <button type="button" id="build-prompt" class="primary-button">Build prompt for this agent</button>
+
+    <div id="prompt-out" class="prompt-out" hidden>
       <div class="prompt-block">
         <div class="prompt-block-head">
           <h3>System prompt</h3>
-          <button type="button" class="copy-button" data-copy-target="b-system">Copy</button>
+          <button type="button" class="copy-button" data-copy-target="p-system">Copy</button>
         </div>
-        <textarea id="b-system" class="prompt-textarea" readonly rows="10"></textarea>
+        <textarea id="p-system" class="mono-textarea" readonly rows="9"></textarea>
       </div>
       <div class="prompt-block">
         <div class="prompt-block-head">
           <h3>User message</h3>
-          <button type="button" class="copy-button" data-copy-target="b-user">Copy</button>
+          <button type="button" class="copy-button" data-copy-target="p-user">Copy</button>
         </div>
-        <textarea id="b-user" class="prompt-textarea" readonly rows="10"></textarea>
+        <textarea id="p-user" class="mono-textarea" readonly rows="9"></textarea>
       </div>
-      <button type="button" id="b-copy-both" class="secondary-button">Copy both (ready to paste into claude.ai)</button>
+      <button type="button" id="copy-both" class="secondary-button">Copy both (ready to paste into claude.ai)</button>
     </div>
 
     <div class="output-block">
       <div class="prompt-block-head">
-        <h3>Output — paste the model's response here to review</h3>
-        <button type="button" id="b-clear-output" class="secondary-button">Clear</button>
+        <h3>Agent output</h3>
+        <button type="button" id="clear-output" class="secondary-button">Clear</button>
       </div>
-      <p class="hint">Saved only in your browser (localStorage), per edition + section. Never sent anywhere.</p>
-      <textarea id="b-output" class="prompt-textarea" rows="12" placeholder="Paste the generated draft here…"></textarea>
+      <p class="hint">Paste the model's response here. Saved in this browser and reusable by any downstream agent.</p>
+      <textarea id="agent-output" class="mono-textarea" rows="10" placeholder="Paste the agent's output here…"></textarea>
     </div>
+  </section>
+
+  <section class="panel" id="report-panel">
+    <div class="workbench-head">
+      <div>
+        <h2>Complete report</h2>
+        <p class="hint">The 9 bulletin sections, assembled in order, from whatever the Draft agents have produced so far.</p>
+      </div>
+      <button type="button" id="copy-report" class="secondary-button">Copy full report</button>
+    </div>
+    <ol class="report-checklist" id="report-checklist"></ol>
+    <div id="report-assembly" class="report-assembly"></div>
   </section>
 </main>
 
-<script src="app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.7.2/mammoth.browser.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
+<script src="app.js" defer></script>
 </body>
 </html>

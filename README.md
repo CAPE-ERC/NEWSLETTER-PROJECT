@@ -18,6 +18,12 @@ and test draft generation.
 ## Layout
 
 ```
+CAPE ERC Economic Newsletter/
+  YYYY/
+    Month Newsletter/  published bulletin, plots, and related edition files
+GDP_Nowcast_and_Newsletter.py  top-level launcher for refreshing both outputs
+Nigeria GDP Nowcasting/
+  model workbook, automation scripts, charts, and supporting assets
 data/
   raw/bulletins/     source .docx editions (style exemplars + trend data)
   processed/         curated structured data per edition, matches schemas/section_data_schema.json
@@ -35,6 +41,13 @@ web/                 static dashboard frontend (trend charts, edition explorer, 
 docs/
   architecture.md    pipeline design, decision rationale, roadmap
 ```
+
+Published editions are grouped by calendar year. For example, the October 2026
+bulletin is written to `CAPE ERC Economic Newsletter/2026/October Newsletter/`.
+Run `GDP_Nowcast_and_Newsletter.py` from this repository's root to refresh the GDP
+nowcast and publish the newsletter while keeping both outputs in the folders above.
+The launcher resolves the shared input workbook from the parent
+`CAPE Inflation Forecasting Model/Main Data/` directory.
 
 ## Setup
 

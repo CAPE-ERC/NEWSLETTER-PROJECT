@@ -22,7 +22,7 @@
     "rmse": 1.947550790536819,
     "mape": 65.1666469267382
   },
-  "core_forecast": 4.239735684928249,
+  "core_forecast": 4.034276248943862,
   "pmi_current_average": 51.900000000000006,
   "pmi_beta": 0.3806337590433819,
   "pmi_beta_raw": 0.3806337590433819,
@@ -31,12 +31,12 @@
   "pmi_signal_forecast": null,
   "pmi_weight": null,
   "pmi_adjustment": null,
-  "statistical_forecast": 4.239735684928249,
+  "statistical_forecast": 4.034276248943862,
   "forecast_override": null,
-  "final_forecast": 4.239735684928249,
+  "final_forecast": 4.034276248943862,
   "interval_80": [
-    3.2482946841706553,
-    5.937198334605
+    3.0428352481862686,
+    5.731738898620613
   ],
   "publication": {
     "mode": "Indicative range",
@@ -45,7 +45,7 @@
       4.34,
       4.5
     ],
-    "complete_months": 1,
+    "complete_months": 2,
     "total_months": 3,
     "pmi_months_available": 2,
     "required_monthly_fields": [
@@ -77,13 +77,13 @@
       {
         "month": "2026-08",
         "available": {
-          "HCPI": false,
-          "M2": false,
-          "CPD": false,
+          "HCPI": true,
+          "M2": true,
+          "CPD": true,
           "PMI": true,
           "Risk": true
         },
-        "complete": false
+        "complete": true
       },
       {
         "month": "2026-09",
@@ -106,21 +106,21 @@
     "growth": null,
     "gdp_lag1": 4.43,
     "gdp_lag4": 3.9800000000000004,
-    "headline_yoy": 15.454906634882803,
-    "core_yoy": 14.973646382367045,
-    "food_yoy": 20.311226983868337,
-    "fx_yoy": -8.87693484786064,
-    "fx_qoq": 1.1108530596068311,
-    "oil_yoy": 15.974309920743357,
-    "oil_qoq": -22.360797706897596,
-    "m2": 95090698.41733825,
-    "m2_yoy": 18.82834441337884,
-    "m2_mom": 7.389340316256909,
-    "m2_qoq": 12.034474266840878,
-    "cps": 83256687.36,
-    "cps_yoy": 8.51563840939249,
+    "headline_yoy": 15.422874966861622,
+    "core_yoy": 14.523214216316326,
+    "food_yoy": 19.9519899549773,
+    "fx_yoy": -8.823938164004357,
+    "fx_qoq": 1.3333404690600403,
+    "oil_yoy": 25.06015283422002,
+    "oil_qoq": -17.891992437641036,
+    "m2": 95599871.84366912,
+    "m2_yoy": 19.259785488624296,
+    "m2_mom": 4.230130970600554,
+    "m2_qoq": 12.63437497299893,
+    "cps": 83905208.965,
+    "cps_yoy": 9.971674979650503,
     "mpr": 26.5,
-    "cpd": 1.51,
+    "cpd": 1.505,
     "risk": 11.03314390345382,
     "macro_month": "2026Q3 available-month averages",
     "pmi": 51.900000000000006
@@ -7235,15 +7235,15 @@
       "year": 2026,
       "month": 8,
       "date": "2026-08-01",
-      "HCPI": null,
-      "Core": null,
-      "Food": null,
-      "MPR": null,
-      "FX": null,
-      "Oil": null,
-      "M2": null,
-      "CPS": null,
-      "CPD": null,
+      "HCPI": 146.3,
+      "Core": 143.88,
+      "Food": 149.18,
+      "MPR": 26.5,
+      "FX": 1413.7143,
+      "Oil": 94.64,
+      "M2": 96109045.27,
+      "CPS": 84553730.57,
+      "CPD": 1.5,
       "PMI": 52.7,
       "Risk": 11.011283121912538
     }

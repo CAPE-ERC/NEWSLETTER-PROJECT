@@ -32,6 +32,77 @@ def quarter_label(value: str) -> str:
     return value
 
 
+def read_inflation_forecast(source: Path, forecast_month: str, point: float, lower: float, upper: float) -> dict:
+    if lower > upper or not lower <= point <= upper:
+        raise ValueError("Inflation point forecast must fall within the lower and upper range bounds.")
+    wb = openpyxl.load_workbook(source, data_only=True, read_only=True)
+    ws = wb["monthly data"]
+    headers = [str(cell.value).strip() if cell.value is not None else "" for cell in ws[2]]
+    if "Date" not in headers or "HCPI" not in headers:
+        raise RuntimeError("The monthly data sheet must contain Date and HCPI columns.")
+    date_col, hcpi_col = headers.index("Date"), headers.index("HCPI")
+    current_year = None
+    levels = {}
+    for row in ws.iter_rows(min_row=3, values_only=True):
+        raw = row[date_col]
+        if raw is None:
+            continue
+        label = str(raw).strip().upper()
+        if "M" not in label:
+            continue
+        if label.startswith(("19", "20")):
+            year_text, month_text = label.split("M", 1)
+            current_year = int(year_text)
+        else:
+            month_text = label.lstrip("M")
+        if current_year is None:
+            continue
+        try:
+            month = int(month_text)
+            value = float(row[hcpi_col])
+        except (TypeError, ValueError):
+            continue
+        if 1 <= month <= 12 and math.isfinite(value):
+            levels[datetime(current_year, month, 1)] = value
+    wb.close()
+
+    target = datetime.strptime(forecast_month, "%Y-%m")
+    prior_actuals = [d for d in levels if d < target]
+    if not prior_actuals:
+        raise RuntimeError("No headline CPI actual precedes the inflation forecast month.")
+    latest = max(prior_actuals)
+    expected = datetime(latest.year + (1 if latest.month == 12 else 0), 1 if latest.month == 12 else latest.month + 1, 1)
+    if target != expected:
+        raise RuntimeError(
+            f"Inflation forecast month {forecast_month} must immediately follow the latest HCPI actual {latest:%Y-%m}."
+        )
+    target_year_ago = datetime(target.year - 1, target.month, 1)
+    latest_year_ago = datetime(latest.year - 1, latest.month, 1)
+    prior_month = datetime(latest.year - (1 if latest.month == 1 else 0), 12 if latest.month == 1 else latest.month - 1, 1)
+    missing = [d.strftime("%Y-%m") for d in (target_year_ago, latest_year_ago, prior_month) if d not in levels]
+    if missing:
+        raise RuntimeError("HCPI history is missing months needed for inflation calculations: " + ", ".join(missing))
+
+    forecast_level = levels[target_year_ago] * (1.0 + point / 100.0)
+    lower_level = levels[target_year_ago] * (1.0 + lower / 100.0)
+    upper_level = levels[target_year_ago] * (1.0 + upper / 100.0)
+    return {
+        "source": str(source),
+        "target": target,
+        "latest": latest,
+        "point": point,
+        "lower": lower,
+        "upper": upper,
+        "latest_yoy": (levels[latest] / levels[latest_year_ago] - 1.0) * 100.0,
+        "latest_mom": (levels[latest] / levels[prior_month] - 1.0) * 100.0,
+        "forecast_level": forecast_level,
+        "forecast_mom": (forecast_level / levels[latest] - 1.0) * 100.0,
+        "forecast_mom_lower": (lower_level / levels[latest] - 1.0) * 100.0,
+        "forecast_mom_upper": (upper_level / levels[latest] - 1.0) * 100.0,
+        "history": levels,
+    }
+
+
 def read_nowcast(workbook_path: Path) -> dict:
     wb = openpyxl.load_workbook(workbook_path, data_only=True, read_only=True)
     summary = wb["Executive Summary"]
@@ -156,26 +227,22 @@ def create_gdp_chart(data: dict, chart_path: Path) -> None:
         draw.ellipse((x - 8, y - 8, x + 8, y + 8), fill="white", outline="#1F4E78", width=5)
 
     xf = x_positions[len(actual)]
-    if data["release_mode"] == "Indicative range":
-        low_y, high_y = y_px(data["lower"]), y_px(data["upper"])
-        draw.line((xf, high_y, xf, low_y), fill="#C00000", width=12)
-        draw.line((xf - 25, high_y, xf + 25, high_y), fill="#C00000", width=8)
-        draw.line((xf - 25, low_y, xf + 25, low_y), fill="#C00000", width=8)
-        yf = (low_y + high_y) / 2
-    else:
-        forecast_points = [(x_positions[len(actual) - 1], y_px(actual[-1])), (xf, y_px(data["point"]))]
-        draw.line(forecast_points, fill="#C00000", width=7)
-        xf, yf = forecast_points[-1]
-        draw.polygon([(xf, yf - 12), (xf + 12, yf), (xf, yf + 12), (xf - 12, yf)], fill="#C00000")
+    low_y, high_y, yf = y_px(data["lower"]), y_px(data["upper"]), y_px(data["point"])
+    draw.line((x_positions[len(actual) - 1], y_px(actual[-1]), xf, yf), fill="#C00000", width=7)
+    draw.line((xf, high_y, xf, low_y), fill="#C00000", width=12)
+    draw.line((xf - 25, high_y, xf + 25, high_y), fill="#C00000", width=8)
+    draw.line((xf - 25, low_y, xf + 25, low_y), fill="#C00000", width=8)
+    draw.polygon([(xf, yf - 13), (xf + 13, yf), (xf, yf + 13), (xf - 13, yf)], fill="#C00000")
 
     latest_text = f"{data['latest_actual']:.2f}%"
     latest_box = draw.textbbox((0, 0), latest_text, font=bold_font)
     draw.text((actual_points[-1][0] - (latest_box[2] - latest_box[0]) - 10, actual_points[-1][1] + 18), latest_text, fill="#1F4E78", font=bold_font)
-    if data["release_mode"] == "Indicative range":
-        forecast_text = f"{data['lower']:.2f}%–{data['upper']:.2f}%"
-    else:
-        forecast_text = f"{data['point']:.2f}%"
-    draw.text((xf - 230, yf - 70), forecast_text, fill="#C00000", font=bold_font)
+    forecast_text = f"{data['point']:.2f}% ({data['lower']:.2f}%–{data['upper']:.2f}%)"
+    forecast_label_y = yf + 24 if data["point"] <= data["latest_actual"] else yf - 70
+    forecast_label_x = xf - 365
+    forecast_box = draw.textbbox((forecast_label_x, forecast_label_y), forecast_text, font=bold_font)
+    draw.rectangle((forecast_box[0] - 8, forecast_box[1] - 5, forecast_box[2] + 8, forecast_box[3] + 5), fill="white")
+    draw.text((forecast_label_x, forecast_label_y), forecast_text, fill="#C00000", font=bold_font)
 
     for x, label in zip(x_positions, labels):
         bbox = draw.textbbox((0, 0), label, font=label_font)
@@ -186,14 +253,11 @@ def create_gdp_chart(data: dict, chart_path: Path) -> None:
     draw.line((plot_left, legend_y + 14, plot_left + 52, legend_y + 14), fill="#1F4E78", width=7)
     draw.text((plot_left + 65, legend_y), "NBS actual", fill="#404040", font=legend_font)
     lx2 = plot_left + 300
-    if data["release_mode"] == "Indicative range":
-        draw.line((lx2 + 26, legend_y - 2, lx2 + 26, legend_y + 31), fill="#C00000", width=10)
-        draw.line((lx2 + 10, legend_y - 2, lx2 + 42, legend_y - 2), fill="#C00000", width=6)
-        draw.line((lx2 + 10, legend_y + 31, lx2 + 42, legend_y + 31), fill="#C00000", width=6)
-        draw.text((lx2 + 65, legend_y), "CAPE indicative range", fill="#404040", font=legend_font)
-    else:
-        draw.line((lx2, legend_y + 14, lx2 + 52, legend_y + 14), fill="#C00000", width=7)
-        draw.text((lx2 + 65, legend_y), "CAPE point forecast", fill="#404040", font=legend_font)
+    draw.line((lx2 + 26, legend_y - 2, lx2 + 26, legend_y + 31), fill="#C00000", width=10)
+    draw.line((lx2 + 10, legend_y - 2, lx2 + 42, legend_y - 2), fill="#C00000", width=6)
+    draw.line((lx2 + 10, legend_y + 31, lx2 + 42, legend_y + 31), fill="#C00000", width=6)
+    draw.polygon([(lx2 + 26, legend_y + 3), (lx2 + 37, legend_y + 14), (lx2 + 26, legend_y + 25), (lx2 + 15, legend_y + 14)], fill="#C00000")
+    draw.text((lx2 + 65, legend_y), "CAPE point forecast and range", fill="#404040", font=legend_font)
 
     # Rotated y-axis title.
     y_title = "Real GDP growth (%, year-on-year)"
@@ -203,10 +267,10 @@ def create_gdp_chart(data: dict, chart_path: Path) -> None:
     title_box = title_box.crop(title_box.getbbox()).rotate(90, expand=True)
     image.paste(title_box, (25, int((plot_top + plot_bottom - title_box.height) / 2)), title_box)
 
-    if data["release_mode"] == "Indicative range":
-        note = f"Actual through {quarter_label(data['latest_period'])}; indicative range shown while complete monthly inputs cover {data['complete_months']} of 3 months."
-    else:
-        note = f"Actual through {quarter_label(data['latest_period'])}; {quarter_label(data['target_period'])} is the CAPE point forecast."
+    note = (
+        f"Actual through {quarter_label(data['latest_period'])}; {quarter_label(data['target_period'])} is the CAPE "
+        f"point forecast and range. Complete monthly inputs cover {data['complete_months']} of 3 months."
+    )
     draw.text((plot_left, height - 80), note, fill="#595959", font=small_font)
     chart_path.parent.mkdir(parents=True, exist_ok=True)
     image.save(chart_path, format="PNG", optimize=True)
@@ -300,6 +364,87 @@ def create_pmi_chart(data: dict, chart_path: Path) -> None:
     image.save(chart_path, format="PNG", optimize=True)
 
 
+def create_inflation_chart(data: dict, chart_path: Path) -> None:
+    history = data["history"]
+    actual = []
+    for observation_date in sorted(d for d in history if d < data["target"]):
+        year_ago = datetime(observation_date.year - 1, observation_date.month, 1)
+        if year_ago in history:
+            actual.append((observation_date, (history[observation_date] / history[year_ago] - 1.0) * 100.0))
+    actual = actual[-14:]
+    if len(actual) < 2:
+        raise RuntimeError("At least two annual inflation observations are required for the inflation chart.")
+
+    width, height = 1548, 920
+    left, right, top, bottom = 150, 55, 105, 190
+    plot_left, plot_right = left, width - right
+    plot_top, plot_bottom = top, height - bottom
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+    font_dir = Path(r"C:\Windows\Fonts")
+
+    def font(size: int, bold: bool = False):
+        preferred = font_dir / ("calibrib.ttf" if bold else "calibri.ttf")
+        fallback = font_dir / ("arialbd.ttf" if bold else "arial.ttf")
+        return ImageFont.truetype(str(preferred if preferred.exists() else fallback), size)
+
+    label_font = font(24)
+    small_font = font(25)
+    legend_font = font(27)
+    bold_font = font(29, bold=True)
+    labels = [d.strftime("%b-%y") for d, _ in actual] + [data["target"].strftime("%b-%y")]
+    actual_values = [v for _, v in actual]
+    all_values = actual_values + [data["lower"], data["upper"], data["point"]]
+    y_min = math.floor((min(all_values) - 0.7) * 2.0) / 2.0
+    y_max = math.ceil((max(all_values) + 0.7) * 2.0) / 2.0
+    if y_max <= y_min:
+        y_max = y_min + 1.0
+
+    def y_px(value: float) -> float:
+        return plot_bottom - (value - y_min) / (y_max - y_min) * (plot_bottom - plot_top)
+
+    x_positions = [plot_left + i * (plot_right - plot_left) / (len(labels) - 1) for i in range(len(labels))]
+    tick = y_min
+    while tick <= y_max + 1e-9:
+        y = y_px(tick)
+        draw.line((plot_left, y, plot_right, y), fill="#D9E2F3", width=2)
+        text = f"{tick:.1f}"
+        bbox = draw.textbbox((0, 0), text, font=small_font)
+        draw.text((plot_left - 18 - (bbox[2] - bbox[0]), y - (bbox[3] - bbox[1]) / 2), text, fill="#595959", font=small_font)
+        tick += 0.5
+    draw.line((plot_left, plot_top, plot_left, plot_bottom), fill="#A6A6A6", width=3)
+    draw.line((plot_left, plot_bottom, plot_right, plot_bottom), fill="#A6A6A6", width=3)
+
+    actual_points = [(x_positions[i], y_px(v)) for i, v in enumerate(actual_values)]
+    draw.line(actual_points, fill="#1F4E78", width=7, joint="curve")
+    for x, y in actual_points:
+        draw.ellipse((x - 8, y - 8, x + 8, y + 8), fill="white", outline="#1F4E78", width=5)
+    xf = x_positions[-1]
+    lower_y, upper_y, point_y = y_px(data["lower"]), y_px(data["upper"]), y_px(data["point"])
+    draw.line((xf, upper_y, xf, lower_y), fill="#C00000", width=12)
+    draw.line((xf - 25, upper_y, xf + 25, upper_y), fill="#C00000", width=8)
+    draw.line((xf - 25, lower_y, xf + 25, lower_y), fill="#C00000", width=8)
+    draw.ellipse((xf - 10, point_y - 10, xf + 10, point_y + 10), fill="#C00000")
+    forecast_text = f"{data['point']:.2f}% ({data['lower']:.2f}%–{data['upper']:.2f}%)"
+    draw.text((xf - 330, point_y - 62), forecast_text, fill="#C00000", font=bold_font)
+
+    for x, label in zip(x_positions, labels):
+        bbox = draw.textbbox((0, 0), label, font=label_font)
+        draw.text((x - (bbox[2] - bbox[0]) / 2, plot_bottom + 20), label, fill="#404040", font=label_font)
+    draw.line((plot_left, 42, plot_left + 52, 42), fill="#1F4E78", width=7)
+    draw.text((plot_left + 65, 28), "NBS actual", fill="#404040", font=legend_font)
+    lx2 = plot_left + 300
+    draw.line((lx2 + 26, 26, lx2 + 26, 59), fill="#C00000", width=10)
+    draw.text((lx2 + 65, 28), "CAPE forecast and range", fill="#404040", font=legend_font)
+    note = (
+        f"Forecast implies {data['forecast_mom']:.2f}% month-on-month inflation; "
+        f"range {data['forecast_mom_lower']:.2f}%–{data['forecast_mom_upper']:.2f}%."
+    )
+    draw.text((plot_left, height - 80), note, fill="#595959", font=small_font)
+    chart_path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(chart_path, format="PNG", optimize=True)
+
+
 def replace_paragraph_text(paragraph, text: str) -> None:
     template_rpr = None
     for run in paragraph.runs:
@@ -359,6 +504,13 @@ def find_paragraph_any(doc: Document, prefixes: tuple[str, ...]):
     raise RuntimeError(f"Newsletter paragraph not found for any prefix: {prefixes}")
 
 
+def find_last_paragraph_any(doc: Document, prefixes: tuple[str, ...]):
+    matches = [p for p in doc.paragraphs if any(p.text.strip().startswith(prefix) for prefix in prefixes)]
+    if not matches:
+        raise RuntimeError(f"Newsletter paragraph not found for any prefix: {prefixes}")
+    return matches[-1]
+
+
 def find_next_drawing_paragraph(doc: Document, paragraph):
     found = False
     for candidate in doc.paragraphs:
@@ -382,13 +534,20 @@ def replace_figure_image(doc: Document, paragraph, image_bytes: bytes) -> None:
         crop.getparent().remove(crop)
 
 
-def apply_plot_overrides(doc: Document, plots_folder: Path | None) -> list[str]:
+def apply_plot_overrides(
+    doc: Document,
+    plots_folder: Path | None,
+    skip_figures: set[int] | None = None,
+) -> list[str]:
     if plots_folder is None or not plots_folder.exists():
         return []
     captions_path = plots_folder / "captions.json"
     captions = json.loads(captions_path.read_text(encoding="utf-8")) if captions_path.exists() else {}
     applied = []
+    skip_figures = skip_figures or set()
     for figure_number in range(1, 8):
+        if figure_number in skip_figures:
+            continue
         candidates = [
             plots_folder / f"Figure {figure_number}.png",
             plots_folder / f"Figure {figure_number}.jpg",
@@ -417,12 +576,24 @@ def publish(
     output: Path,
     chart: Path,
     pmi_chart: Path,
+    inflation_chart: Path,
+    inflation: dict,
+    gdp: dict,
     report_month: str,
     plots_folder: Path | None,
 ) -> dict:
     values = read_nowcast(workbook)
+    values.update(
+        {
+            "release_mode": "Point forecast with range",
+            "point": gdp["point"],
+            "lower": gdp["lower"],
+            "upper": gdp["upper"],
+        }
+    )
     create_gdp_chart(values, chart)
     create_pmi_chart(values, pmi_chart)
+    create_inflation_chart(inflation, inflation_chart)
     doc = Document(template)
     report_date = datetime.strptime(report_month, "%Y-%m")
     report_month_name = report_date.strftime("%B")
@@ -437,6 +608,17 @@ def publish(
             ),
         ),
         report_title,
+    )
+
+    opening_inflation = (
+        f"CAPE expects headline inflation to reach {inflation['point']:.2f} per cent in "
+        f"{inflation['target'].strftime('%B %Y')}, within a forecast range of "
+        f"{inflation['lower']:.2f}–{inflation['upper']:.2f} per cent. The point forecast implies "
+        f"a {inflation['forecast_mom']:.2f} per cent month-on-month increase in the consumer price index."
+    )
+    replace_paragraph_text(
+        find_paragraph_any(doc, ("CAPE expects headline inflation", "CAPE forecasts headline inflation")),
+        opening_inflation,
     )
 
     pmi_series = values["pmi_monthly"]
@@ -493,6 +675,41 @@ def publish(
     replace_caption_keep_drawing(pmi_caption_p, pmi_caption)
     replace_figure_image(doc, find_next_drawing_paragraph(doc, pmi_caption_p), pmi_chart.read_bytes())
 
+    actual_inflation = (
+        f"Headline inflation was {inflation['latest_yoy']:.2f} per cent year-on-year in "
+        f"{inflation['latest'].strftime('%B %Y')}. Consumer prices rose by "
+        f"{inflation['latest_mom']:.2f} per cent over the month. Disinflation represents a slower pace of price "
+        f"increases, not a decline in the overall cost of living."
+    )
+    replace_paragraph_text(find_paragraph(doc, "Headline inflation"), actual_inflation)
+
+    inflation_caption_p = find_paragraph(doc, "Figure 5:")
+    chart_start = sorted(d for d in inflation["history"] if d < inflation["target"])[-14]
+    inflation_caption = (
+        f"Figure 5: Nigeria Headline Inflation and CAPE {inflation['target'].strftime('%B %Y')} Forecast "
+        f"({chart_start:%b %Y}–{inflation['target']:%b %Y})"
+    )
+    replace_caption_keep_drawing(inflation_caption_p, inflation_caption)
+    inflation_drawing = (
+        inflation_caption_p
+        if inflation_caption_p._p.xpath(".//*[local-name()='blip']")
+        else find_next_drawing_paragraph(doc, inflation_caption_p)
+    )
+    replace_figure_image(doc, inflation_drawing, inflation_chart.read_bytes())
+
+    inflation_outlook = (
+        f"CAPE forecasts headline inflation of {inflation['point']:.2f} per cent in "
+        f"{inflation['target'].strftime('%B %Y')}, within a range of {inflation['lower']:.2f}–"
+        f"{inflation['upper']:.2f} per cent. The point forecast corresponds to an implied consumer-price increase "
+        f"of {inflation['forecast_mom']:.2f} per cent month-on-month, with an implied range of "
+        f"{inflation['forecast_mom_lower']:.2f}–{inflation['forecast_mom_upper']:.2f} per cent. Food supply, "
+        f"transport costs, insecurity, currency conditions and monetary policy remain important risks to the outlook."
+    )
+    replace_paragraph_text(
+        find_last_paragraph_any(doc, ("CAPE forecasts headline inflation", "CAPE expects headline inflation")),
+        inflation_outlook,
+    )
+
     pmi_outlook = (
         f"The latest PMI readings point to a cautious improvement in near-term private-sector activity. The index "
         f"moved from {pmi_previous['value']:.1f} in {pmi_previous['date'].strftime('%B')} to "
@@ -514,23 +731,16 @@ def publish(
 
     target_label = quarter_label(values["target_period"])
     latest_label = quarter_label(values["latest_period"])
-    if values["release_mode"] == "Indicative range":
-        highlight = (
-            f"Nigeria’s real GDP growth strengthened to {values['latest_actual']:.2f} per cent in {latest_label}. "
-            f"CAPE places {target_label} growth within an indicative range of {values['lower']:.2f}–{values['upper']:.2f} "
-            f"per cent. CAPE continues to assess the strength and breadth of the recovery."
-        )
-    else:
-        direction = "slightly below" if values["point"] < values["latest_actual"] else "slightly above"
-        highlight = (
-            f"Nigeria’s real GDP growth strengthened to {values['latest_actual']:.2f} per cent in {latest_label}; "
-            f"CAPE forecasts {target_label} growth at "
-            f"{values['point']:.2f} per cent, {direction} the latest official outturn."
-        )
+    direction = "below" if values["point"] < values["latest_actual"] else "above"
+    highlight = (
+        f"Nigeria’s real GDP growth strengthened to {values['latest_actual']:.2f} per cent in {latest_label}. "
+        f"CAPE forecasts {target_label} growth at {values['point']:.2f} per cent, within a "
+        f"{values['lower']:.2f}–{values['upper']:.2f} per cent range and {direction} the latest official outturn."
+    )
     replace_paragraph_text(find_paragraph(doc, "Nigeria’s real GDP growth strengthened"), highlight)
 
     caption_p = find_paragraph(doc, "Figure 3:")
-    release_label = "Indicative Range" if values["release_mode"] == "Indicative range" else "Point Forecast"
+    release_label = "Point Forecast and Range"
     caption = f"Figure 3: Nigeria Real GDP Growth and CAPE {target_label} {release_label} (Q1 2024–{target_label}) in percent"
     replace_caption_keep_drawing(caption_p, caption)
     replace_figure_image(doc, caption_p, chart.read_bytes())
@@ -538,20 +748,13 @@ def publish(
     source_p = find_paragraph(doc, "Source: National Bureau of Statistics (NBS)")
     replace_source_paragraph(source_p)
 
-    if values["release_mode"] == "Indicative range":
-        outlook = (
-            f"CAPE places {target_label} real GDP growth in an indicative {values['lower']:.2f}–{values['upper']:.2f} per cent range. "
-            f"High borrowing costs, energy expenses and insecurity remain risks to the outlook. "
-            f"We continue to monitor economic developments and will refine the outlook as the quarter progresses."
-        )
-    else:
-        outlook = (
-            f"Nigeria’s near-term output outlook remains subject to domestic and external risks. "
-            f"CAPE forecasts real GDP growth at {values['point']:.2f} per cent year-on-year in {target_label}, "
-            f"{direction} the {values['latest_actual']:.2f} per cent recorded in {latest_label}. "
-            f"High financing costs, energy and logistics expenses, insecurity and weak household demand remain "
-            f"downside risks."
-        )
+    outlook = (
+        f"Nigeria’s near-term output outlook remains subject to domestic and external risks. CAPE forecasts real "
+        f"GDP growth at {values['point']:.2f} per cent year-on-year in {target_label}, within a "
+        f"{values['lower']:.2f}–{values['upper']:.2f} per cent range and {direction} the "
+        f"{values['latest_actual']:.2f} per cent recorded in {latest_label}. High financing costs, energy and "
+        f"logistics expenses, insecurity and weak household demand remain downside risks."
+    )
     replace_paragraph_text(
         find_paragraph_any(
             doc,
@@ -565,16 +768,21 @@ def publish(
     )
 
     conclusion_p = find_paragraph(doc, "Nigeria enters ")
-    if values["release_mode"] == "Indicative range":
-        growth_sentence = (
-            f"CAPE places {target_label} growth in an indicative {values['lower']:.2f}–{values['upper']:.2f} per cent "
-            f"range, subject to further assessment as the quarter progresses."
-        )
-    else:
-        growth_sentence = (
-            f"CAPE forecasts {values['point']:.2f} per cent growth in {target_label}."
-        )
+    growth_sentence = (
+        f"CAPE forecasts {values['point']:.2f} per cent growth in {target_label}, within a "
+        f"{values['lower']:.2f}–{values['upper']:.2f} per cent range."
+    )
     conclusion = re.sub(r"^Nigeria enters [A-Za-z]+", f"Nigeria enters {report_month_name}", conclusion_p.text.strip())
+    inflation_clause = (
+        f"while headline inflation is forecast at {inflation['point']:.2f} per cent in "
+        f"{inflation['target'].strftime('%B')}, within a {inflation['lower']:.2f}–{inflation['upper']:.2f} per cent range."
+    )
+    conclusion = re.sub(
+        r"while headline inflation is .*?(?= Sustaining| CAPE ERC expects| The outlook will depend|$)",
+        inflation_clause,
+        conclusion,
+        flags=re.IGNORECASE,
+    )
     growth_start = conclusion.find("Real GDP growth")
     continuation_markers = [" Stronger federation", " CAPE ERC expects", " The outlook will depend"]
     continuation_positions = [conclusion.find(marker, growth_start) for marker in continuation_markers if conclusion.find(marker, growth_start) >= 0]
@@ -584,7 +792,9 @@ def publish(
         conclusion = conclusion[:growth_start] + refreshed_growth + conclusion[growth_end:]
     replace_paragraph_text(conclusion_p, conclusion)
 
-    plot_overrides = apply_plot_overrides(doc, plots_folder)
+    # Figures 3 and 5 are generated from the GDP and inflation prompts and must
+    # not be replaced by stale manually supplied plots in the Plots folder.
+    plot_overrides = apply_plot_overrides(doc, plots_folder, skip_figures={3, 5})
 
     output.parent.mkdir(parents=True, exist_ok=True)
     doc.save(output)
@@ -595,6 +805,8 @@ def publish(
         "output": str(output),
         "chart": str(chart),
         "pmi_chart": str(pmi_chart),
+        "inflation_chart": str(inflation_chart),
+        "inflation": {key: value for key, value in inflation.items() if key != "history"},
         "report_month": report_month,
         "plot_overrides": plot_overrides,
     }
@@ -607,23 +819,46 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--chart", type=Path)
     parser.add_argument("--pmi-chart", type=Path)
+    parser.add_argument("--inflation-chart", type=Path)
+    parser.add_argument("--gdp-point", type=float, required=True)
+    parser.add_argument("--gdp-lower", type=float, required=True)
+    parser.add_argument("--gdp-upper", type=float, required=True)
+    parser.add_argument("--inflation-source", type=Path, required=True)
+    parser.add_argument("--inflation-month", required=True)
+    parser.add_argument("--inflation-point", type=float, required=True)
+    parser.add_argument("--inflation-lower", type=float, required=True)
+    parser.add_argument("--inflation-upper", type=float, required=True)
     parser.add_argument("--report-month", default=datetime.now().strftime("%Y-%m"))
     parser.add_argument("--plots-folder", type=Path)
     args = parser.parse_args()
     chart = args.chart or args.workbook.parent / "Newsletter Assets" / "Nigeria GDP Nowcast Chart.png"
     pmi_chart = args.pmi_chart or args.workbook.parent / "Newsletter Assets" / "Nigeria PMI Trend Chart.png"
+    inflation_chart = args.inflation_chart or args.workbook.parent / "Newsletter Assets" / "Nigeria Inflation Forecast Chart.png"
     template = args.template.resolve()
     output = args.output.resolve()
     if not template.exists() and output.exists():
         template = output
     plots_folder = args.plots_folder.resolve() if args.plots_folder else None
-    result = publish(template, args.workbook.resolve(), output, chart.resolve(), pmi_chart.resolve(), args.report_month, plots_folder)
+    inflation = read_inflation_forecast(
+        args.inflation_source.resolve(), args.inflation_month,
+        args.inflation_point, args.inflation_lower, args.inflation_upper,
+    )
+    if args.gdp_lower > args.gdp_upper or not args.gdp_lower <= args.gdp_point <= args.gdp_upper:
+        parser.error("GDP point forecast must fall within the lower and upper range bounds.")
+    gdp = {"point": args.gdp_point, "lower": args.gdp_lower, "upper": args.gdp_upper}
+    result = publish(
+        template, args.workbook.resolve(), output, chart.resolve(), pmi_chart.resolve(),
+        inflation_chart.resolve(), inflation, gdp, args.report_month, plots_folder,
+    )
     print({
         "status": "newsletter published",
         "target": result["target_period"],
         "release_mode": result["release_mode"],
         "point": result["point"],
         "published_range": [result["lower"], result["upper"]],
+        "inflation_point": result["inflation"]["point"],
+        "inflation_range": [result["inflation"]["lower"], result["inflation"]["upper"]],
+        "inflation_month_on_month": result["inflation"]["forecast_mom"],
         "report_month": result["report_month"],
         "plot_overrides": result["plot_overrides"],
         "output": result["output"],

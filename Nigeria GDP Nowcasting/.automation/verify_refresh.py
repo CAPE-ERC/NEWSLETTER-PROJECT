@@ -58,7 +58,7 @@ wb.close()
 
 wb = openpyxl.load_workbook(master, data_only=False, read_only=True)
 assert wb["monthly data"]["K2"].value == "PMI"
-assert wb["monthly data"]["L2"].value == "Inflation Risk"
+assert wb["monthly data"]["L2"].value == "Inflation_Risk_Index"
 assert "Quarterly Data" in wb.sheetnames
 wb.close()
 

@@ -32,9 +32,22 @@ def quarter_label(value: str) -> str:
     return value
 
 
+def inflation_momentum(change: float, future: bool = False) -> str:
+    if change > 0.05:
+        return "is projected to accelerate" if future else "accelerated"
+    if change < -0.05:
+        return "is projected to ease" if future else "eased"
+    return "is projected to remain broadly stable" if future else "was broadly stable"
+
+
+def percentage_point_change(change: float) -> str:
+    direction = "increase" if change > 0 else "decline"
+    return f"a {abs(change):.2f} percentage-point {direction}"
+
+
 def read_inflation_forecast(source: Path, forecast_month: str, point: float, lower: float, upper: float) -> dict:
     if lower > upper or not lower <= point <= upper:
-        raise ValueError("Inflation point forecast must fall within the lower and upper range bounds.")
+        raise ValueError("The expected inflation rate must fall within the lower and upper range bounds.")
     wb = openpyxl.load_workbook(source, data_only=True, read_only=True)
     ws = wb["monthly data"]
     headers = [str(cell.value).strip() if cell.value is not None else "" for cell in ws[2]]
@@ -79,13 +92,20 @@ def read_inflation_forecast(source: Path, forecast_month: str, point: float, low
     target_year_ago = datetime(target.year - 1, target.month, 1)
     latest_year_ago = datetime(latest.year - 1, latest.month, 1)
     prior_month = datetime(latest.year - (1 if latest.month == 1 else 0), 12 if latest.month == 1 else latest.month - 1, 1)
-    missing = [d.strftime("%Y-%m") for d in (target_year_ago, latest_year_ago, prior_month) if d not in levels]
+    prior_month_year_ago = datetime(prior_month.year - 1, prior_month.month, 1)
+    missing = [
+        d.strftime("%Y-%m")
+        for d in (target_year_ago, latest_year_ago, prior_month, prior_month_year_ago)
+        if d not in levels
+    ]
     if missing:
         raise RuntimeError("HCPI history is missing months needed for inflation calculations: " + ", ".join(missing))
 
     forecast_level = levels[target_year_ago] * (1.0 + point / 100.0)
     lower_level = levels[target_year_ago] * (1.0 + lower / 100.0)
     upper_level = levels[target_year_ago] * (1.0 + upper / 100.0)
+    latest_yoy = (levels[latest] / levels[latest_year_ago] - 1.0) * 100.0
+    previous_yoy = (levels[prior_month] / levels[prior_month_year_ago] - 1.0) * 100.0
     return {
         "source": str(source),
         "target": target,
@@ -93,7 +113,11 @@ def read_inflation_forecast(source: Path, forecast_month: str, point: float, low
         "point": point,
         "lower": lower,
         "upper": upper,
-        "latest_yoy": (levels[latest] / levels[latest_year_ago] - 1.0) * 100.0,
+        "latest_yoy": latest_yoy,
+        "previous": prior_month,
+        "previous_yoy": previous_yoy,
+        "latest_yoy_change": latest_yoy - previous_yoy,
+        "forecast_yoy_change": point - latest_yoy,
         "latest_mom": (levels[latest] / levels[prior_month] - 1.0) * 100.0,
         "forecast_level": forecast_level,
         "forecast_mom": (forecast_level / levels[latest] - 1.0) * 100.0,
@@ -183,10 +207,10 @@ def create_gdp_chart(data: dict, chart_path: Path) -> None:
     labels = [quarter_label(r["period"]) for r in recent] + [quarter_label(target["period"])]
     actual = [r["actual"] for r in recent]
     width, height = 1548, 920
-    left, right, top, bottom = 150, 55, 105, 190
+    left, right, top, bottom = 150, 55, 145, 190
     plot_left, plot_right = left, width - right
     plot_top, plot_bottom = top, height - bottom
-    image = Image.new("RGB", (width, height), "white")
+    image = Image.new("RGB", (width, height), "#FBFCFE")
     draw = ImageDraw.Draw(image)
     font_dir = Path(r"C:\Windows\Fonts")
 
@@ -199,6 +223,7 @@ def create_gdp_chart(data: dict, chart_path: Path) -> None:
     small_font = font(25)
     legend_font = font(27)
     bold_font = font(28, bold=True)
+    title_font = font(38, bold=True)
     release_values = [v for v in (data.get("point"), data.get("lower"), data.get("upper")) if v is not None]
     y_min = max(0.0, min(release_values + actual) - 0.7)
     y_max = max(release_values + actual) + 0.7
@@ -209,6 +234,9 @@ def create_gdp_chart(data: dict, chart_path: Path) -> None:
         return plot_bottom - (value - y_min) / (y_max - y_min) * (plot_bottom - plot_top)
 
     x_positions = [plot_left + i * (plot_right - plot_left) / (len(labels) - 1) for i in range(len(labels))]
+    forecast_left = (x_positions[-2] + x_positions[-1]) / 2
+    draw.rectangle((forecast_left, plot_top, plot_right, plot_bottom), fill="#FFF1EF")
+    draw.text((plot_right - 145, plot_top + 14), "FORECAST", fill="#A61B1B", font=small_font)
     tick = y_min
     while tick <= y_max + 1e-9:
         y = y_px(tick)
@@ -222,6 +250,10 @@ def create_gdp_chart(data: dict, chart_path: Path) -> None:
     draw.line((plot_left, plot_bottom, plot_right, plot_bottom), fill="#A6A6A6", width=3)
 
     actual_points = [(x_positions[i], y_px(v)) for i, v in enumerate(actual)]
+    draw.polygon(
+        actual_points + [(actual_points[-1][0], plot_bottom), (actual_points[0][0], plot_bottom)],
+        fill="#EAF2F8",
+    )
     draw.line(actual_points, fill="#1F4E78", width=7, joint="curve")
     for x, y in actual_points:
         draw.ellipse((x - 8, y - 8, x + 8, y + 8), fill="white", outline="#1F4E78", width=5)
@@ -248,8 +280,9 @@ def create_gdp_chart(data: dict, chart_path: Path) -> None:
         bbox = draw.textbbox((0, 0), label, font=label_font)
         draw.text((x - (bbox[2] - bbox[0]) / 2, plot_bottom + 20), label, fill="#404040", font=label_font)
 
+    draw.text((plot_left, 18), "Nigeria real GDP growth", fill="#17365D", font=title_font)
     # Legend.
-    legend_y = 28
+    legend_y = 76
     draw.line((plot_left, legend_y + 14, plot_left + 52, legend_y + 14), fill="#1F4E78", width=7)
     draw.text((plot_left + 65, legend_y), "NBS actual", fill="#404040", font=legend_font)
     lx2 = plot_left + 300
@@ -257,7 +290,7 @@ def create_gdp_chart(data: dict, chart_path: Path) -> None:
     draw.line((lx2 + 10, legend_y - 2, lx2 + 42, legend_y - 2), fill="#C00000", width=6)
     draw.line((lx2 + 10, legend_y + 31, lx2 + 42, legend_y + 31), fill="#C00000", width=6)
     draw.polygon([(lx2 + 26, legend_y + 3), (lx2 + 37, legend_y + 14), (lx2 + 26, legend_y + 25), (lx2 + 15, legend_y + 14)], fill="#C00000")
-    draw.text((lx2 + 65, legend_y), "CAPE point forecast and range", fill="#404040", font=legend_font)
+    draw.text((lx2 + 65, legend_y), "CAPE forecast and range", fill="#404040", font=legend_font)
 
     # Rotated y-axis title.
     y_title = "Real GDP growth (%, year-on-year)"
@@ -269,7 +302,7 @@ def create_gdp_chart(data: dict, chart_path: Path) -> None:
 
     note = (
         f"Actual through {quarter_label(data['latest_period'])}; {quarter_label(data['target_period'])} is the CAPE "
-        f"point forecast and range. Complete monthly inputs cover {data['complete_months']} of 3 months."
+        f"forecast and range. Complete monthly inputs cover {data['complete_months']} of 3 months."
     )
     draw.text((plot_left, height - 80), note, fill="#595959", font=small_font)
     chart_path.parent.mkdir(parents=True, exist_ok=True)
@@ -342,7 +375,7 @@ def create_pmi_chart(data: dict, chart_path: Path) -> None:
 
     legend_y = 28
     draw.line((plot_left, legend_y + 14, plot_left + 52, legend_y + 14), fill="#1F4E78", width=7)
-    draw.text((plot_left + 65, legend_y), "Nigeria PMI", fill="#404040", font=legend_font)
+    draw.text((plot_left + 65, legend_y), "CBN Composite PMI", fill="#404040", font=legend_font)
     lx2 = plot_left + 300
     draw.line((lx2, legend_y + 14, lx2 + 52, legend_y + 14), fill="#C00000", width=4)
     draw.text((lx2 + 65, legend_y), "50-point threshold", fill="#404040", font=legend_font)
@@ -376,10 +409,10 @@ def create_inflation_chart(data: dict, chart_path: Path) -> None:
         raise RuntimeError("At least two annual inflation observations are required for the inflation chart.")
 
     width, height = 1548, 920
-    left, right, top, bottom = 150, 55, 105, 190
+    left, right, top, bottom = 150, 55, 145, 190
     plot_left, plot_right = left, width - right
     plot_top, plot_bottom = top, height - bottom
-    image = Image.new("RGB", (width, height), "white")
+    image = Image.new("RGB", (width, height), "#FBFCFE")
     draw = ImageDraw.Draw(image)
     font_dir = Path(r"C:\Windows\Fonts")
 
@@ -392,6 +425,7 @@ def create_inflation_chart(data: dict, chart_path: Path) -> None:
     small_font = font(25)
     legend_font = font(27)
     bold_font = font(29, bold=True)
+    title_font = font(38, bold=True)
     labels = [d.strftime("%b-%y") for d, _ in actual] + [data["target"].strftime("%b-%y")]
     actual_values = [v for _, v in actual]
     all_values = actual_values + [data["lower"], data["upper"], data["point"]]
@@ -404,6 +438,9 @@ def create_inflation_chart(data: dict, chart_path: Path) -> None:
         return plot_bottom - (value - y_min) / (y_max - y_min) * (plot_bottom - plot_top)
 
     x_positions = [plot_left + i * (plot_right - plot_left) / (len(labels) - 1) for i in range(len(labels))]
+    forecast_left = (x_positions[-2] + x_positions[-1]) / 2
+    draw.rectangle((forecast_left, plot_top, plot_right, plot_bottom), fill="#FFF1EF")
+    draw.text((plot_right - 145, plot_top + 14), "FORECAST", fill="#A61B1B", font=small_font)
     tick = y_min
     while tick <= y_max + 1e-9:
         y = y_px(tick)
@@ -416,6 +453,10 @@ def create_inflation_chart(data: dict, chart_path: Path) -> None:
     draw.line((plot_left, plot_bottom, plot_right, plot_bottom), fill="#A6A6A6", width=3)
 
     actual_points = [(x_positions[i], y_px(v)) for i, v in enumerate(actual_values)]
+    draw.polygon(
+        actual_points + [(actual_points[-1][0], plot_bottom), (actual_points[0][0], plot_bottom)],
+        fill="#EAF2F8",
+    )
     draw.line(actual_points, fill="#1F4E78", width=7, joint="curve")
     for x, y in actual_points:
         draw.ellipse((x - 8, y - 8, x + 8, y + 8), fill="white", outline="#1F4E78", width=5)
@@ -426,18 +467,30 @@ def create_inflation_chart(data: dict, chart_path: Path) -> None:
     draw.line((xf - 25, lower_y, xf + 25, lower_y), fill="#C00000", width=8)
     draw.ellipse((xf - 10, point_y - 10, xf + 10, point_y + 10), fill="#C00000")
     forecast_text = f"{data['point']:.2f}% ({data['lower']:.2f}%–{data['upper']:.2f}%)"
-    draw.text((xf - 330, point_y - 62), forecast_text, fill="#C00000", font=bold_font)
+    label_x = xf - 360
+    label_y = point_y - 66
+    label_box = draw.textbbox((label_x, label_y), forecast_text, font=bold_font)
+    draw.rectangle((label_box[0] - 8, label_box[1] - 5, label_box[2] + 8, label_box[3] + 5), fill="white")
+    draw.text((label_x, label_y), forecast_text, fill="#C00000", font=bold_font)
 
     for x, label in zip(x_positions, labels):
         bbox = draw.textbbox((0, 0), label, font=label_font)
         draw.text((x - (bbox[2] - bbox[0]) / 2, plot_bottom + 20), label, fill="#404040", font=label_font)
-    draw.line((plot_left, 42, plot_left + 52, 42), fill="#1F4E78", width=7)
-    draw.text((plot_left + 65, 28), "NBS actual", fill="#404040", font=legend_font)
+    draw.text((plot_left, 18), "Nigeria headline inflation", fill="#17365D", font=title_font)
+    legend_y = 76
+    draw.line((plot_left, legend_y + 14, plot_left + 52, legend_y + 14), fill="#1F4E78", width=7)
+    draw.text((plot_left + 65, legend_y), "NBS actual", fill="#404040", font=legend_font)
     lx2 = plot_left + 300
-    draw.line((lx2 + 26, 26, lx2 + 26, 59), fill="#C00000", width=10)
-    draw.text((lx2 + 65, 28), "CAPE forecast and range", fill="#404040", font=legend_font)
+    draw.line((lx2 + 26, legend_y - 2, lx2 + 26, legend_y + 31), fill="#C00000", width=10)
+    draw.text((lx2 + 65, legend_y), "CAPE forecast and range", fill="#404040", font=legend_font)
+    y_title = "Headline inflation (%, year-on-year)"
+    title_box = Image.new("RGBA", (800, 70), (255, 255, 255, 0))
+    title_draw = ImageDraw.Draw(title_box)
+    title_draw.text((0, 0), y_title, fill="#404040", font=label_font)
+    title_box = title_box.crop(title_box.getbbox()).rotate(90, expand=True)
+    image.paste(title_box, (25, int((plot_top + plot_bottom - title_box.height) / 2)), title_box)
     note = (
-        f"Forecast implies {data['forecast_mom']:.2f}% month-on-month inflation; "
+        f"Expected monthly inflation is {data['forecast_mom']:.2f}%; "
         f"range {data['forecast_mom_lower']:.2f}%–{data['forecast_mom_upper']:.2f}%."
     )
     draw.text((plot_left, height - 80), note, fill="#595959", font=small_font)
@@ -496,16 +549,30 @@ def find_paragraph(doc: Document, startswith: str):
     raise RuntimeError(f"Newsletter paragraph not found: {startswith}")
 
 
+def starts_with_flexible_spacing(text: str, prefix: str) -> bool:
+    """Match newsletter text despite Word introducing, removing, or changing spaces."""
+    normalized_text = re.sub(r"\s+", " ", text).strip().casefold()
+    normalized_prefix = re.sub(r"\s+", " ", prefix).strip().casefold()
+    if normalized_text.startswith(normalized_prefix):
+        return True
+    compact_text = re.sub(r"\s+", "", normalized_text)
+    compact_prefix = re.sub(r"\s+", "", normalized_prefix)
+    return compact_text.startswith(compact_prefix)
+
+
 def find_paragraph_any(doc: Document, prefixes: tuple[str, ...]):
     for p in doc.paragraphs:
         text = p.text.strip()
-        if any(text.startswith(prefix) for prefix in prefixes):
+        if any(starts_with_flexible_spacing(text, prefix) for prefix in prefixes):
             return p
     raise RuntimeError(f"Newsletter paragraph not found for any prefix: {prefixes}")
 
 
 def find_last_paragraph_any(doc: Document, prefixes: tuple[str, ...]):
-    matches = [p for p in doc.paragraphs if any(p.text.strip().startswith(prefix) for prefix in prefixes)]
+    matches = [
+        p for p in doc.paragraphs
+        if any(starts_with_flexible_spacing(p.text, prefix) for prefix in prefixes)
+    ]
     if not matches:
         raise RuntimeError(f"Newsletter paragraph not found for any prefix: {prefixes}")
     return matches[-1]
@@ -585,7 +652,7 @@ def publish(
     values = read_nowcast(workbook)
     values.update(
         {
-            "release_mode": "Point forecast with range",
+            "release_mode": "Forecast with range",
             "point": gdp["point"],
             "lower": gdp["lower"],
             "upper": gdp["upper"],
@@ -610,14 +677,20 @@ def publish(
         report_title,
     )
 
+    forecast_momentum = inflation_momentum(inflation["forecast_yoy_change"], future=True)
     opening_inflation = (
         f"CAPE expects headline inflation to reach {inflation['point']:.2f} per cent in "
-        f"{inflation['target'].strftime('%B %Y')}, within a forecast range of "
-        f"{inflation['lower']:.2f}–{inflation['upper']:.2f} per cent. The point forecast implies "
-        f"a {inflation['forecast_mom']:.2f} per cent month-on-month increase in the consumer price index."
+        f"{inflation['target'].strftime('%B %Y')}, within a {inflation['lower']:.2f}–"
+        f"{inflation['upper']:.2f} per cent forecast range. Relative to the "
+        f"{inflation['latest_yoy']:.2f} per cent outturn in {inflation['latest'].strftime('%B')}, inflation "
+        f"{forecast_momentum}. Consumer prices are expected to rise by {inflation['forecast_mom']:.2f} per cent "
+        f"during the month."
     )
     replace_paragraph_text(
-        find_paragraph_any(doc, ("CAPE expects headline inflation", "CAPE forecasts headline inflation")),
+        find_paragraph_any(
+            doc,
+            ("CAPE expects headline inflation", "CAPE forecasts headline inflation", "CAPE projects headline inflation"),
+        ),
         opening_inflation,
     )
 
@@ -651,9 +724,9 @@ def publish(
         else "The reading is below the 50.0 threshold and signals a deterioration in private-sector conditions."
     )
     pmi_narrative = (
-        f"The Stanbic IBTC Nigeria Purchasing Managers’ Index (PMI) {pmi_change}. {pmi_status} "
-        f"The improvement points to firmer business activity, although high financing, energy, transport and other "
-        f"operating costs remain important constraints."
+        f"The Central Bank of Nigeria Composite Purchasing Managers’ Index (PMI) {pmi_change}. {pmi_status} "
+        f"The reading indicates a broadening expansion in domestic activity, although elevated financing, energy, "
+        f"transport and input costs continue to compress operating margins."
     )
     replace_paragraph_text(
         find_paragraph_any(
@@ -661,6 +734,7 @@ def publish(
             (
                 "The Stanbic IBTC Purchasing Managers’ Index",
                 "The Stanbic IBTC Nigeria Purchasing Managers’ Index",
+                "The Central Bank of Nigeria Composite Purchasing Managers’ Index",
                 "Nigeria’s Purchasing Managers’ Index",
             ),
         ),
@@ -669,17 +743,20 @@ def publish(
 
     pmi_caption_p = find_paragraph(doc, "Figure 2:")
     pmi_caption = (
-        f"Figure 2: Trend of Nigeria’s PMI "
+        f"Figure 2: Trend of Nigeria’s CBN Composite PMI "
         f"({pmi_series[-14]['date'].strftime('%b %Y')}–{pmi_latest['date'].strftime('%b %Y')})"
     )
     replace_caption_keep_drawing(pmi_caption_p, pmi_caption)
     replace_figure_image(doc, find_next_drawing_paragraph(doc, pmi_caption_p), pmi_chart.read_bytes())
 
+    latest_momentum = inflation_momentum(inflation["latest_yoy_change"])
     actual_inflation = (
-        f"Headline inflation was {inflation['latest_yoy']:.2f} per cent year-on-year in "
-        f"{inflation['latest'].strftime('%B %Y')}. Consumer prices rose by "
-        f"{inflation['latest_mom']:.2f} per cent over the month. Disinflation represents a slower pace of price "
-        f"increases, not a decline in the overall cost of living."
+        f"Headline inflation {latest_momentum} to {inflation['latest_yoy']:.2f} per cent year-on-year in "
+        f"{inflation['latest'].strftime('%B %Y')}, from {inflation['previous_yoy']:.2f} per cent in "
+        f"{inflation['previous'].strftime('%B')}; this represents "
+        f"{percentage_point_change(inflation['latest_yoy_change'])}. The consumer price index rose by "
+        f"{inflation['latest_mom']:.2f} per cent during the month. The movement in the annual rate therefore "
+        f"reflects the interaction of current price pressures and base effects, rather than a fall in the price level."
     )
     replace_paragraph_text(find_paragraph(doc, "Headline inflation"), actual_inflation)
 
@@ -698,12 +775,15 @@ def publish(
     replace_figure_image(doc, inflation_drawing, inflation_chart.read_bytes())
 
     inflation_outlook = (
-        f"CAPE forecasts headline inflation of {inflation['point']:.2f} per cent in "
-        f"{inflation['target'].strftime('%B %Y')}, within a range of {inflation['lower']:.2f}–"
-        f"{inflation['upper']:.2f} per cent. The point forecast corresponds to an implied consumer-price increase "
-        f"of {inflation['forecast_mom']:.2f} per cent month-on-month, with an implied range of "
-        f"{inflation['forecast_mom_lower']:.2f}–{inflation['forecast_mom_upper']:.2f} per cent. Food supply, "
-        f"transport costs, insecurity, currency conditions and monetary policy remain important risks to the outlook."
+        f"CAPE forecasts headline inflation at {inflation['point']:.2f} per cent in "
+        f"{inflation['target'].strftime('%B %Y')}, within a {inflation['lower']:.2f}–"
+        f"{inflation['upper']:.2f} per cent range. The annual rate {forecast_momentum} relative to "
+        f"{inflation['latest'].strftime('%B')}. Consumer prices are expected to rise by "
+        f"{inflation['forecast_mom']:.2f} per cent during the month. Across the forecast range, the monthly "
+        f"increase would lie between {inflation['forecast_mom_lower']:.2f} and "
+        f"{inflation['forecast_mom_upper']:.2f} per cent. "
+        f"The balance of risks remains sensitive to food supply conditions, transport and energy costs, exchange-rate "
+        f"pass-through, insecurity and the stance of monetary policy."
     )
     replace_paragraph_text(
         find_last_paragraph_any(doc, ("CAPE forecasts headline inflation", "CAPE expects headline inflation")),
@@ -711,11 +791,11 @@ def publish(
     )
 
     pmi_outlook = (
-        f"The latest PMI readings point to a cautious improvement in near-term private-sector activity. The index "
-        f"moved from {pmi_previous['value']:.1f} in {pmi_previous['date'].strftime('%B')} to "
-        f"{pmi_latest['value']:.1f} in {pmi_latest['date'].strftime('%B')}, remaining above the expansion threshold. "
-        f"Sustaining this momentum will require reliable power and transport, access to working capital and continued "
-        f"stability in the foreign-exchange market."
+        f"The CBN Composite PMI strengthened from {pmi_previous['value']:.1f} in "
+        f"{pmi_previous['date'].strftime('%B')} to {pmi_latest['value']:.1f} in "
+        f"{pmi_latest['date'].strftime('%B')}, remaining above the 50-point expansion threshold. The improvement "
+        f"supports a firmer near-term activity profile, but the durability of the expansion will depend on reliable "
+        f"power and transport services, access to working capital and continued foreign-exchange stability."
     )
     replace_paragraph_text(
         find_paragraph_any(
@@ -724,6 +804,7 @@ def publish(
                 "Forward-looking indicators remain cautiously positive",
                 "The latest PMI readings point to a cautious improvement",
                 "The improvement in business activity",
+                "The CBN Composite PMI strengthened",
             ),
         ),
         pmi_outlook,
@@ -732,15 +813,18 @@ def publish(
     target_label = quarter_label(values["target_period"])
     latest_label = quarter_label(values["latest_period"])
     direction = "below" if values["point"] < values["latest_actual"] else "above"
+    growth_signal = "a moderation in growth momentum" if values["point"] < values["latest_actual"] else "a further strengthening in growth momentum"
+    growth_gap = abs(values["point"] - values["latest_actual"])
     highlight = (
         f"Nigeria’s real GDP growth strengthened to {values['latest_actual']:.2f} per cent in {latest_label}. "
         f"CAPE forecasts {target_label} growth at {values['point']:.2f} per cent, within a "
-        f"{values['lower']:.2f}–{values['upper']:.2f} per cent range and {direction} the latest official outturn."
+        f"{values['lower']:.2f}–{values['upper']:.2f} per cent range. This would be "
+        f"{growth_gap:.2f} percentage points {direction} the latest official outturn, indicating {growth_signal}."
     )
     replace_paragraph_text(find_paragraph(doc, "Nigeria’s real GDP growth strengthened"), highlight)
 
     caption_p = find_paragraph(doc, "Figure 3:")
-    release_label = "Point Forecast and Range"
+    release_label = "Forecast Range"
     caption = f"Figure 3: Nigeria Real GDP Growth and CAPE {target_label} {release_label} (Q1 2024–{target_label}) in percent"
     replace_caption_keep_drawing(caption_p, caption)
     replace_figure_image(doc, caption_p, chart.read_bytes())
@@ -749,11 +833,12 @@ def publish(
     replace_source_paragraph(source_p)
 
     outlook = (
-        f"Nigeria’s near-term output outlook remains subject to domestic and external risks. CAPE forecasts real "
-        f"GDP growth at {values['point']:.2f} per cent year-on-year in {target_label}, within a "
-        f"{values['lower']:.2f}–{values['upper']:.2f} per cent range and {direction} the "
-        f"{values['latest_actual']:.2f} per cent recorded in {latest_label}. High financing costs, energy and "
-        f"logistics expenses, insecurity and weak household demand remain downside risks."
+        f"CAPE expects real GDP growth to reach {values['point']:.2f} per cent year-on-year in "
+        f"{target_label}, within a {values['lower']:.2f}–{values['upper']:.2f} per cent forecast range. This is "
+        f"{growth_gap:.2f} percentage points {direction} the {values['latest_actual']:.2f} per cent expansion "
+        f"recorded in {latest_label}. Firmer private-sector activity and improved order books provide support, "
+        f"while high financing costs, energy and logistics expenses, insecurity and subdued household purchasing "
+        f"power continue to weigh on the near-term growth profile."
     )
     replace_paragraph_text(
         find_paragraph_any(
@@ -762,6 +847,8 @@ def publish(
                 "Nigeria’s near-term output outlook",
                 f"CAPE places {target_label} real GDP growth",
                 "CAPE maintains an indicative range",
+                "CAPE’s central estimate places real GDP growth",
+                "CAPE expects real GDP growth",
             ),
         ),
         outlook,
@@ -774,7 +861,7 @@ def publish(
     )
     conclusion = re.sub(r"^Nigeria enters [A-Za-z]+", f"Nigeria enters {report_month_name}", conclusion_p.text.strip())
     inflation_clause = (
-        f"while headline inflation is forecast at {inflation['point']:.2f} per cent in "
+        f"while headline inflation {forecast_momentum} to {inflation['point']:.2f} per cent in "
         f"{inflation['target'].strftime('%B')}, within a {inflation['lower']:.2f}–{inflation['upper']:.2f} per cent range."
     )
     conclusion = re.sub(
@@ -844,7 +931,7 @@ def main() -> None:
         args.inflation_point, args.inflation_lower, args.inflation_upper,
     )
     if args.gdp_lower > args.gdp_upper or not args.gdp_lower <= args.gdp_point <= args.gdp_upper:
-        parser.error("GDP point forecast must fall within the lower and upper range bounds.")
+        parser.error("The expected GDP growth rate must fall within the lower and upper range bounds.")
     gdp = {"point": args.gdp_point, "lower": args.gdp_lower, "upper": args.gdp_upper}
     result = publish(
         template, args.workbook.resolve(), output, chart.resolve(), pmi_chart.resolve(),

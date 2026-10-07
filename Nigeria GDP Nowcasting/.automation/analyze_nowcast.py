@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from pathlib import Path
 
 import numpy as np
@@ -56,6 +57,44 @@ def parse_monthly_sheet(path: Path):
             }
         )
     wb.close()
+    override_month = os.environ.get("NIGERIA_PMI_OVERRIDE_MONTH", "").strip()
+    override_value = os.environ.get("NIGERIA_PMI_OVERRIDE_VALUE", "").strip()
+    if override_month or override_value:
+        if not override_month or not override_value:
+            raise ValueError("PMI override requires both a month and a value.")
+        try:
+            year_text, month_text = override_month.split("-", 1)
+            override_year, override_month_number = int(year_text), int(month_text)
+            pmi_value = float(override_value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("PMI override must use YYYY-MM and a numeric value.") from exc
+        if not 1 <= override_month_number <= 12 or not math.isfinite(pmi_value) or not 0 < pmi_value < 100:
+            raise ValueError("PMI override month or value is outside its valid range.")
+        record = next(
+            (item for item in records if (item["year"], item["month"]) == (override_year, override_month_number)),
+            None,
+        )
+        if record is None:
+            record = {
+                "year": override_year,
+                "month": override_month_number,
+                "date": f"{override_year:04d}-{override_month_number:02d}-01",
+                "HCPI": None,
+                "Core": None,
+                "Food": None,
+                "MPR": None,
+                "FX": None,
+                "Oil": None,
+                "M2": None,
+                "CPS": None,
+                "CPD": None,
+                "PMI": pmi_value,
+                "Risk": None,
+            }
+            records.append(record)
+        else:
+            record["PMI"] = pmi_value
+        records.sort(key=lambda item: (item["year"], item["month"]))
     return records
 
 

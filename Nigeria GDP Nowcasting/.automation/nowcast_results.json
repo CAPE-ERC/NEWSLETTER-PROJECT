@@ -1,7 +1,7 @@
 {
   "source": "C:\\Users\\eakan\\Documents\\CAPE-ERC\\CAPE Inflation Forecasting Model\\Main Data\\MultipleFrequencyModelData.xlsx",
   "target_period": "2026Q3",
-  "source_latest_month": "2026-08",
+  "source_latest_month": "2026-09",
   "target_latest_quarter": {
     "year": 2026,
     "quarter": 2,
@@ -22,8 +22,8 @@
     "rmse": 1.947550790536819,
     "mape": 65.1666469267382
   },
-  "core_forecast": 4.034276248943862,
-  "pmi_current_average": 51.900000000000006,
+  "core_forecast": 4.070512967525296,
+  "pmi_current_average": 52.26666666666667,
   "pmi_beta": 0.3806337590433819,
   "pmi_beta_raw": 0.3806337590433819,
   "pmi_mean": 50.716712835468385,
@@ -31,12 +31,12 @@
   "pmi_signal_forecast": null,
   "pmi_weight": null,
   "pmi_adjustment": null,
-  "statistical_forecast": 4.034276248943862,
+  "statistical_forecast": 4.070512967525296,
   "forecast_override": null,
-  "final_forecast": 4.034276248943862,
+  "final_forecast": 4.070512967525296,
   "interval_80": [
-    3.0428352481862686,
-    5.731738898620613
+    3.0790719667677027,
+    5.7679756172020475
   ],
   "publication": {
     "mode": "Indicative range",
@@ -47,7 +47,7 @@
     ],
     "complete_months": 2,
     "total_months": 3,
-    "pmi_months_available": 2,
+    "pmi_months_available": 3,
     "required_monthly_fields": [
       "HCPI",
       "M2",
@@ -91,8 +91,8 @@
           "HCPI": false,
           "M2": false,
           "CPD": false,
-          "PMI": false,
-          "Risk": false
+          "PMI": true,
+          "Risk": true
         },
         "complete": false
       }
@@ -121,9 +121,9 @@
     "cps_yoy": 9.971674979650503,
     "mpr": 26.5,
     "cpd": 1.505,
-    "risk": 11.03314390345382,
+    "risk": 11.53022732394441,
     "macro_month": "2026Q3 available-month averages",
-    "pmi": 51.900000000000006
+    "pmi": 52.26666666666667
   },
   "coefficients_standardized": {
     "intercept": 3.113636363636364,
@@ -7246,6 +7246,22 @@
       "CPD": 1.5,
       "PMI": 52.7,
       "Risk": 11.011283121912538
+    },
+    {
+      "year": 2026,
+      "month": 9,
+      "date": "2026-09-01",
+      "HCPI": null,
+      "Core": null,
+      "Food": null,
+      "MPR": null,
+      "FX": null,
+      "Oil": null,
+      "M2": null,
+      "CPS": null,
+      "CPD": null,
+      "PMI": 53,
+      "Risk": 12.5243941649256
     }
   ],
   "quarterly_actuals": [
@@ -8164,6 +8180,10 @@
     {
       "month": "2026-08",
       "pmi": 52.7
+    },
+    {
+      "month": "2026-09",
+      "pmi": 53.0
     }
   ],
   "pmi_quarterly": {

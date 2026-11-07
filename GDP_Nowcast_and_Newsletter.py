@@ -266,10 +266,14 @@ def inspect_master_pmi(path: Path) -> dict:
 
 
 def pmi_override_inputs(args, master: Path) -> tuple[str | None, float | None]:
-    audit = inspect_master_pmi(master)
     expected = args.pmi_month or previous_month(args.report_month)
     if args.pmi_month is not None and args.pmi_value is None:
         raise ValueError("--pmi-month requires --pmi-value.")
+    if args.pmi_value is None:
+        # No PMI check or prompt: the GDP nowcast uses the PMI in the master workbook as it is.
+        # A one-off value can still be given with --pmi-value (and --pmi-month).
+        return None, None
+    audit = inspect_master_pmi(master)
     latest = audit["latest"]
     stale = latest["month"] < expected
     print(
@@ -385,21 +389,19 @@ def inflation_inputs(args, master: Path) -> tuple[str, float | None, float | Non
 
 def gdp_inputs(args, results_path: Path) -> tuple[float, float, float]:
     results = json.loads(results_path.read_text(encoding="utf-8"))
-    model_point = float(results["final_forecast"])
-    model_lower, model_upper = map(float, results["interval_80"])
-    target = str(results["target_period"])
-    pmi_monthly = results.get("pmi_monthly", [])
-    latest_pmi = pmi_monthly[-1] if pmi_monthly else None
+    model_point = float(results["published_candidate_forecast_pct"])
+    model_lower = float(results.get("reporting_range_lower_pct", results["pi50_lower_pct"]))
+    model_upper = float(results.get("reporting_range_upper_pct", results["pi50_upper_pct"]))
+    target = str(results["target_quarter"])
     print("\n" + "=" * 64)
     print("NEW GDP NOWCAST RESULTS")
     print("=" * 64)
     print(f"Target quarter: {target}")
     print(f"Model point nowcast: {model_point:.2f}% year-on-year")
-    print(f"Empirical 80% range: {model_lower:.2f}% to {model_upper:.2f}%")
-    print(f"Complete target-quarter monthly inputs: {results['publication']['complete_months']} of 3")
-    if latest_pmi:
-        print(f"Latest PMI used: {latest_pmi['month']} = {latest_pmi['pmi']:.1f}")
-    print(f"Target-quarter PMI average used by the model: {results['pmi_current_average']:.2f}")
+    print(f"CAPE reporting range: {model_lower:.2f}% to {model_upper:.2f}%")
+    print(f"Information vintage: {results['vintage']}")
+    print(f"Models in ensemble: {results['models_eligible']}")
+    print(f"Best single model: {results['best_single_model_last8']} ({results['best_single_model_forecast_pct']:.2f}%)")
 
     if args.gdp_point is not None or args.gdp_lower is not None or args.gdp_upper is not None:
         point = model_point if args.gdp_point is None else float(args.gdp_point)
@@ -423,7 +425,7 @@ def gdp_inputs(args, results_path: Path) -> tuple[float, float, float]:
         raise ValueError("GDP forecast lower bound cannot exceed the upper bound.")
     if not lower <= point <= upper:
         raise ValueError("The expected GDP growth rate must fall within the forecast range.")
-    print(f"Publishing GDP growth at {point:.2f}% with a {lower:.2f}%–{upper:.2f}% range.")
+    print(f"Publishing GDP growth at {point:.2f}% with a CAPE reporting range of {lower:.2f}%–{upper:.2f}%.")
     return point, lower, upper
 
 
@@ -454,6 +456,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report_month", nargs="?", type=month_value, default=date.today().strftime("%Y-%m"),
                         help="Newsletter month YYYY-MM (default: current month); model quarter remains data-driven.")
+    parser.add_argument("--as-of", type=date.fromisoformat, default=date.today(),
+                        help="Information date YYYY-MM-DD (default: today).")
+    parser.add_argument("--target-quarter", help="Optional YYYYQn override; normally selected automatically.")
     parser.add_argument("--newsletter-template", type=Path)
     parser.add_argument("--plots-folder", type=Path)
     parser.add_argument("--gdp-point", type=float, help="Expected GDP growth, year-on-year percent.")
@@ -475,29 +480,39 @@ def main(argv=None):
     parser.add_argument("--dry-run", action="store_true", help="Check paths and show commands; do not change any files.")
     args = parser.parse_args(argv)
     project_root = Path(__file__).resolve().parent
-    nowcast_root = project_root / "Nigeria GDP Nowcasting"
+    nowcast_root = project_root / "Nigeria_GDP_Nowcast"
     model_root = project_root.parent
     automation = nowcast_root / ".automation"
     master = model_root / "Main Data" / "MultipleFrequencyModelData.xlsx"
     newsletter_root = project_root / "CAPE ERC Economic Newsletter"
     output, template = report_paths(newsletter_root, args.report_month, args.newsletter_template)
     plots = args.plots_folder.resolve() if args.plots_folder else output.parent / "Plots"
-    bundled_node = Path.home() / ".cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe"
-    node = str(bundled_node) if bundled_node.is_file() else shutil.which("node")
-    if not node:
-        raise FileNotFoundError("Node.js is required by the existing workbook renderer but was not found.")
-    for path in [master, *(automation / f for f in (
-            "analyze_nowcast.py", "build_workbooks.mjs", "verify_refresh.py", "publish_newsletter.py"))]:
+    for path in [master, nowcast_root / "run_nigeria_nowcast.py", nowcast_root / "check_package.py",
+                 automation / "publish_newsletter.py"]:
         if not path.is_file():
             raise FileNotFoundError(path)
-    python = [sys.executable, "-X", "utf8"]
-    workbook = nowcast_root / "Nigeria Quarterly GDP Nowcast.xlsx"
+    python_candidates = [sys.executable, shutil.which("python")]
+    python_executable = None
+    for candidate in dict.fromkeys(str(item) for item in python_candidates if item):
+        probe = subprocess.run(
+            [candidate, "-c", "import pandas, sklearn, openpyxl, PIL, docx"],
+            capture_output=True,
+            text=True,
+        )
+        if probe.returncode == 0:
+            python_executable = candidate
+            break
+    if python_executable is None:
+        raise RuntimeError(
+            "The nowcasting automation requires Python with pandas, scikit-learn, openpyxl, Pillow and python-docx."
+        )
+    python = [python_executable, "-X", "utf8"]
+    workbook = nowcast_root / "Results" / "Nigeria_GDP_8_Model_Results.xlsx"
     pmi_month, pmi_value = pmi_override_inputs(args, master)
-    commands = [
-        python + [str(automation / "analyze_nowcast.py")],
-        [node, str(automation / "build_workbooks.mjs")],
-        python + [str(automation / "verify_refresh.py"), str(nowcast_root)],
-    ]
+    model_command = python + [str(nowcast_root / "run_nigeria_nowcast.py"), "--as-of", args.as_of.isoformat()]
+    if args.target_quarter:
+        model_command += ["--target-quarter", args.target_quarter.upper()]
+    commands = [model_command, python + [str(nowcast_root / "check_package.py"), "--require-excel"]]
     if args.dry_run:
         print("DRY RUN: no model estimation, files changed, or report published.")
         print(f"Read-only master: {master}\nReport: {output}")
@@ -506,7 +521,12 @@ def main(argv=None):
         print("After validation, the run displays the new GDP nowcast, then asks whether to accept it or override it.")
         print("Inflation point and range inputs are requested only after the GDP results are visible.")
         return 0
-    env = dict(os.environ, NIGERIA_NOWCAST_OUTPUT_DIR=str(nowcast_root), NIGERIA_SKIP_SOURCE_UPDATE="1")
+    env = dict(
+        os.environ,
+        NIGERIA_NOWCAST_OUTPUT_DIR=str(nowcast_root),
+        NIGERIA_SKIP_SOURCE_UPDATE="1",
+        PYTHONDONTWRITEBYTECODE="1",
+    )
     if pmi_month is not None and pmi_value is not None:
         env["NIGERIA_PMI_OVERRIDE_MONTH"] = pmi_month
         env["NIGERIA_PMI_OVERRIDE_VALUE"] = str(pmi_value)
@@ -515,20 +535,21 @@ def main(argv=None):
         return subprocess.run(commands[index], cwd=nowcast_root, env=env, check=check).returncode
 
     before = shared_hash(master)
-    results = automation / "nowcast_results.json"
+    results = nowcast_root / "Results" / "forecast.json"
     results_before = stamp(results)
+    workbook_before = stamp(workbook)
     run(0)
     if stamp(results) is None or stamp(results) == results_before:
-        raise RuntimeError("Estimation did not refresh nowcast_results.json; stopping.")
-    workbook_before = stamp(workbook)
+        raise RuntimeError("Estimation did not refresh forecast.json; stopping.")
+    if stamp(workbook) is None:
+        raise RuntimeError("Model run did not create the Excel workbook; stopping.")
     builder_status = run(1, check=False)
     if stamp(workbook) is None or stamp(workbook) == workbook_before:
-        raise RuntimeError(f"Builder did not save a fresh workbook (status {builder_status}); stopping.")
-    run(2)
+        raise RuntimeError(f"Model run did not save a fresh workbook (validation status {builder_status}); stopping.")
+    if builder_status:
+        raise RuntimeError(f"Independent model validation failed with status {builder_status}; stopping.")
     if shared_hash(master) != before:
         raise RuntimeError("Master workbook changed during estimation/build; publication stopped. Do not edit during refresh.")
-    if builder_status:
-        print(f"Warning: renderer exited with status {builder_status}; freshly saved workbook passed validation.")
 
     # Publication decisions are deliberately deferred until the model has run
     # and its refreshed forecast, range and PMI vintage are visible.

@@ -1,0 +1,65 @@
+{
+  "as_of": "2026-10-14",
+  "target_quarter": "2026Q3",
+  "vintage": "M3",
+  "model_predictions_pct": {
+    "Persistence": 4.43,
+    "AR Ridge": 4.055911494937675,
+    "Ridge Bridge": 4.521640631957848,
+    "MIDAS-style Ridge": 4.937119345777163,
+    "Dynamic Factor Proxy": 4.531935633598502,
+    "Ridge": 4.437304948166937,
+    "Elastic Net": 4.510572849297116,
+    "OLS with intercept": 4.5776573876873385
+  },
+  "ensemble_weights": {
+    "Persistence": 0.31948292374242154,
+    "AR Ridge": 0.1818713437884335,
+    "Ridge Bridge": 0.0817181558176534,
+    "MIDAS-style Ridge": 0.05994899460718432,
+    "Dynamic Factor Proxy": 0.09863284219862065,
+    "Ridge": 0.11008412055198888,
+    "Elastic Net": 0.08267476409146272,
+    "OLS with intercept": 0.06558685520223506
+  },
+  "statistical_ensemble_pct": 4.427058104326641,
+  "expert_adjustment_pp": 0.0,
+  "expert_reason": "",
+  "published_candidate_forecast_pct": 4.427058104326641,
+  "reporting_range_lower_pct": 3.789153150449925,
+  "reporting_range_upper_pct": 5.064963058203357,
+  "reporting_range_definition": "PI50: symmetric finite-sample empirical absolute-error interval from eligible same-vintage ensemble errors",
+  "pi50_lower_pct": 3.789153150449925,
+  "pi50_upper_pct": 5.064963058203357,
+  "pi50_radius_pp": 0.6379049538767161,
+  "pi50_calibration_n": 16,
+  "best_single_model_last8": "Persistence",
+  "best_single_model_forecast_pct": 4.43,
+  "best_model_rmse_pp": 0.4330271354083944,
+  "models_eligible": 8,
+  "cps_definition": "Raw workbook CPS level; not growth or momentum",
+  "ols_coefficients": {
+    "n_complete": 46,
+    "features": [
+      "gdp_latest_published",
+      "cps_level_qtd_mean",
+      "pmi_qtd_mean",
+      "risk_qtd_mean"
+    ],
+    "intercept": -7.557535974284338,
+    "coefficients": {
+      "gdp_latest_published": 0.5162247214309031,
+      "cps_level_qtd_mean": 2.267181268227843e-08,
+      "pmi_qtd_mean": 0.14160219074565017,
+      "risk_qtd_mean": 0.047263609556640676
+    },
+    "r2_in_sample": 0.6083820641691647
+  },
+  "historical_method": "Final-vintage predictor proxy; forecast origins M1/M2/M3 at month-end+14 days, GDP outcomes release-gated",
+  "weighting_method": "Inverse-squared RMSE of last 8 eligible historical errors by same vintage, including OLS, only GDP outcomes published by forecast origin; equal weights until 8 eligible errors per component",
+  "interval_method": "Symmetric finite-sample median-absolute-error proxy from last 16 sequential ensemble errors already published; 50% nominal only, not independent calibration",
+  "expert_judgment_policy": "No manual adjustment unless explicitly supplied with a written reason; raw ensemble reported separately.",
+  "model_version": "eight_model_linear_factor_ols_2026_10_14",
+  "master_workbook": "C:\\Users\\eakan\\Documents\\CAPE-ERC\\CAPE Inflation Forecasting Model\\Main Data\\MultipleFrequencyModelData.xlsx",
+  "master_sha256": "e092da56b8f83a1e196ca245e6e6536a3f0f49aa8fe36525c6c19fec01862e46"
+}

@@ -1,0 +1,42 @@
+{
+  "report_month": "2026-10",
+  "purpose": "Official-source register for monthly economic editorial review",
+  "sources": [
+    {
+      "label": "Central Bank of Nigeria monetary policy decisions",
+      "url": "https://www.cbn.gov.ng/MonetaryPolicy/decisions.html",
+      "status": "HTTP 200",
+      "page_title": "Monetary Policy Decisions | Central Bank of Nigeria"
+    },
+    {
+      "label": "Central Bank of Nigeria data and PMI repository",
+      "url": "https://www.cbn.gov.ng/rates/",
+      "status": "HTTP 200",
+      "page_title": "Data & Statistics | Central Bank of Nigeria"
+    },
+    {
+      "label": "National Bureau of Statistics",
+      "url": "https://www.nigerianstat.gov.ng/",
+      "status": "HTTP 200",
+      "page_title": "Home | National Bureau of Statistics"
+    },
+    {
+      "label": "Stanbic IBTC purchasing managers reports",
+      "url": "https://www.stanbicibtcbank.com/nigeriabank/corporate-and-investment/insights",
+      "status": "HTTP 200",
+      "page_title": "Insights | Stanbic IBTC Bank"
+    },
+    {
+      "label": "IMF World Economic Outlook",
+      "url": "https://www.imf.org/en/Publications/WEO",
+      "status": "unavailable: HTTPError",
+      "page_title": ""
+    },
+    {
+      "label": "World Bank Global Economic Prospects",
+      "url": "https://www.worldbank.org/en/publication/global-economic-prospects",
+      "status": "HTTP 200",
+      "page_title": "Global Economic Prospects"
+    }
+  ]
+}

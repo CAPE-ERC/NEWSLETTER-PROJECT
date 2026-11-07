@@ -1,0 +1,67 @@
+{
+  "as_of": "2026-11-07",
+  "target_quarter": "2026Q3",
+  "vintage": "M3",
+  "model_predictions_pct": {
+    "Persistence": 4.43,
+    "AR Ridge": 4.073356383610536,
+    "Ridge Bridge": 4.577159361070702,
+    "MIDAS-style Ridge": 4.886863775067051,
+    "Dynamic Factor Proxy": 4.595359376467221,
+    "Ridge": 4.491581947021729,
+    "Elastic Net": 4.567428365124808,
+    "OLS with intercept": 4.632699950868767
+  },
+  "ensemble_weights": {
+    "Persistence": 0.2260052029697936,
+    "AR Ridge": 0.18115928805331064,
+    "Ridge Bridge": 0.09873127484315956,
+    "MIDAS-style Ridge": 0.07449445517395203,
+    "Dynamic Factor Proxy": 0.10920033030501192,
+    "Ridge": 0.12826112094020248,
+    "Elastic Net": 0.10054502149838147,
+    "OLS with intercept": 0.08160330621618839
+  },
+  "statistical_ensemble_pct": 4.470268337872727,
+  "expert_adjustment_pp": 0.0,
+  "expert_reason": "",
+  "published_candidate_forecast_pct": 4.470268337872727,
+  "reporting_range_lower_pct": 4.16,
+  "reporting_range_upper_pct": 4.64,
+  "reporting_range_definition": "Judgment-adjusted CAPE range: round both original PI50 bounds to 0.01 percentage point, increase displayed lower by 10%, reduce displayed upper by 10%, round to 0.01 pp; not a statistical PI50",
+  "pi50_lower_pct": 3.776894706110067,
+  "pi50_upper_pct": 5.163641969635387,
+  "reporting_bound_adjustment_fraction": 0.1,
+  "reporting_input_rounding_decimals": 2,
+  "pi50_radius_pp": 0.6933736317626602,
+  "pi50_calibration_n": 16,
+  "best_single_model_last8": "Persistence",
+  "best_single_model_forecast_pct": 4.43,
+  "best_model_rmse_pp": 0.5654644109048771,
+  "models_eligible": 8,
+  "cps_definition": "Raw workbook CPS level; not growth or momentum",
+  "ols_coefficients": {
+    "n_complete": 46,
+    "features": [
+      "gdp_latest_published",
+      "cps_level_qtd_mean",
+      "pmi_qtd_mean",
+      "risk_qtd_mean"
+    ],
+    "intercept": -7.870259442854623,
+    "coefficients": {
+      "gdp_latest_published": 0.5119118984250042,
+      "cps_level_qtd_mean": 2.2372371047675517e-08,
+      "pmi_qtd_mean": 0.14625836598006436,
+      "risk_qtd_mean": 0.04760346417939485
+    },
+    "r2_in_sample": 0.6082552346122068
+  },
+  "historical_method": "FINAL-VINTAGE PSEUDO-REAL-TIME, all quarterly GDP assumed published 60 calendar days after quarter-end; M1/M2/M3 origins at month-end+14 days; recorded GDP dates intentionally ignored",
+  "gdp_release_assumption_days": 60,
+  "gdp_release_calendar_policy": "assumed_60_calendar_days_all_quarters_no_overrides",
+  "weighting_method": "Inverse-squared RMSE of last 8 eligible historical errors by same vintage, including OLS, only GDP outcomes published by forecast origin; equal weights until 8 eligible errors per component",
+  "interval_method": "Symmetric finite-sample median-absolute-error proxy from last 16 sequential ensemble errors already published; 50% nominal only, not independent calibration",
+  "expert_judgment_policy": "No manual adjustment unless explicitly supplied with a written reason; raw ensemble reported separately.",
+  "model_version": "eight_model_linear_factor_ols_2026_10_14"
+}

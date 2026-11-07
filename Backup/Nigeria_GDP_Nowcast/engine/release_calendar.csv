@@ -1,0 +1,14 @@
+series,reference_period,release_date,source_url,quality
+GDP,2024Q4,2025-02-25,https://microdata.nigerianstat.gov.ng/index.php/catalog/147/related-materials,official_nbs
+GDP,2025Q1,2025-07-21,https://www.reuters.com/world/africa/nigerias-economy-expanded-313-yy-first-quarter-2025-07-21/,contemporaneous_reuters
+GDP,2025Q2,2025-09-22,https://www.reuters.com/world/africa/nigerias-q2-gdp-growth-423-yy-stats-office-2025-09-22/,contemporaneous_reuters
+GDP,2025Q3,2025-12-01,https://www.reuters.com/world/africa/nigerian-economy-grows-398-q3-annual-basis-stats-office-says-2025-12-01/,contemporaneous_reuters
+GDP,2025Q4,2026-02-27,https://www.reuters.com/world/africa/nigerias-economic-growth-edges-up-407-yy-fourth-quarter-2026-02-27/,contemporaneous_reuters
+GDP,2026Q1,2026-05-25,https://microdata.nigerianstat.gov.ng/index.php/catalog/147/related-materials,official_nbs
+GDP,2026Q2,2026-08-31,https://microdata.nigerianstat.gov.ng/index.php/catalog/147/related-materials,official_nbs
+PMI,2026-07,2026-08-06,https://ebs.publicnow.com/view/DC2686F96BE654AF9914DAD64340AE3B7BCE56DD,cbn_replica_publicnow
+PMI,2026-08,2026-09-03,https://nairametrics.com/2026/09/03/cbn-nigerias-economic-activity-expands-for-third-month-as-composite-pmi-rises-to-52-7/,contemporaneous_press
+PMI,2026-09,2026-10-02,https://nairametrics.com/2026/10/02/nigerias-composite-pmi-rises-to-53-0-in-september-marks-fourth-month-of-expansion-cbn/,contemporaneous_press
+M2,2026-08,2026-09-21,https://www.thecable.ng/cbn-says-private-sector-credit-increased-to-n84-55tn-in-august/,available_by_2026_09_21_actual_release_unknown
+CPS,2026-08,2026-09-21,https://www.thecable.ng/cbn-says-private-sector-credit-increased-to-n84-55tn-in-august/,available_by_2026_09_21_actual_release_unknown
+MPR,2026-09,2026-09-22,https://www.cbn.gov.ng/MonetaryPolicy/decisions.html,official_cbn_announcement
